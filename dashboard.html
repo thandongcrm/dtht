@@ -1,0 +1,2028 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CRM DTHT - Admin Dashboard Pro</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <!-- SheetJS (Excel) & HTML2PDF & Confetti -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+    <!-- FIREBASE SDK COMPAT -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Quicksand:wght@500;700;900&family=Times+New+Roman&display=swap');
+        
+        body {
+            font-family: 'Quicksand', sans-serif;
+            background: linear-gradient(135deg, #FFF7ED 0%, #F0FDF4 100%);
+        }
+        
+        .tnr-font {
+            font-family: 'Times New Roman', Times, serif !important;
+            font-size: 13pt !important;
+        }
+
+        .btn-orange { background: #FF7A00; color: white; }
+        .btn-orange:hover { background: #E06C00; }
+        .btn-green { background: #22C55E; color: white; }
+        .btn-green:hover { background: #16A34A; }
+
+        .cute-bounce { animation: bounce 2s infinite; }
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-5px); }
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col text-gray-800">
+
+    <!-- HEADER PRO -->
+    <header class="bg-white border-b-4 border-orange-400 shadow-md sticky top-0 z-30">
+        <div class="max-w-7xl mx-auto px-4 py-3 flex flex-wrap justify-between items-center gap-2">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 bg-gradient-to-tr from-orange-500 to-amber-400 rounded-2xl flex items-center justify-center text-white text-xl font-black shadow cute-bounce">
+                    <i class="fa-solid fa-graduation-cap"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-black text-orange-600 tracking-wide">CRM DTHT</h1>
+                    <p class="text-[11px] font-bold text-green-600">Thần Đồng Siêu Nhí - Quản Lý Dạy Thêm Học Thêm</p>
+                </div>
+            </div>
+
+            <!-- TABS MENU -->
+            <nav class="flex space-x-1 sm:space-x-2">
+                <button onclick="switchTab('tab1')" id="btn-tab1" class="px-3 py-2 rounded-xl font-black text-xs btn-orange shadow">
+                    <i class="fa-solid fa-user-tie mr-1"></i> GIÁO VIÊN & PHÒNG
+                </button>
+                <button onclick="switchTab('tab2')" id="btn-tab2" class="px-3 py-2 rounded-xl font-black text-xs bg-gray-100 text-gray-600 hover:bg-orange-100">
+                    <i class="fa-solid fa-calendar-days mr-1"></i> THỜI KHÓA BIỂU
+                </button>
+                <button onclick="switchTab('tab3')" id="btn-tab3" class="px-3 py-2 rounded-xl font-black text-xs bg-gray-100 text-gray-600 hover:bg-orange-100">
+                    <i class="fa-solid fa-chart-line mr-1"></i> BÁO CÁO & HÓA ĐƠN
+                </button>
+            </nav>
+
+            <div class="flex items-center space-x-2">
+                <span id="syncStatus" class="text-[10px] bg-green-100 text-green-700 px-2 py-1 rounded-lg font-bold"><i class="fa-solid fa-cloud mr-1"></i>Cloud Online</span>
+                <button onclick="resetDefaultData()" class="px-2.5 py-1.5 bg-gray-100 text-gray-500 rounded-xl font-bold text-xs hover:bg-gray-200 transition" title="Khôi phục dữ liệu gốc">
+                    <i class="fa-solid fa-rotate-left"></i>
+                </button>
+                <button onclick="triggerLogoutModal()" class="px-3 py-1.5 bg-red-100 text-red-600 rounded-xl font-bold text-xs hover:bg-red-200 transition">
+                    <i class="fa-solid fa-right-from-bracket mr-1"></i> Đăng xuất
+                </button>
+            </div>
+        </div>
+
+        <div class="bg-gradient-to-r from-orange-500 via-amber-400 to-green-500 text-white text-xs py-1.5 px-4 font-bold text-center shadow-inner flex items-center justify-center space-x-2">
+            <i class="fa-solid fa-face-smile-wink text-amber-200"></i>
+            <span id="quoteText" class="tracking-wide">"Mỗi ngày đi dạy là một ngày gieo mầm tương lai rực rỡ!"</span>
+        </div>
+    </header>
+
+    <!-- CONTENT -->
+    <main class="max-w-7xl mx-auto px-4 py-5 flex-grow w-full">
+
+        <!-- ================= TAB 1: GIÁO VIÊN & PHÒNG HỌC ================= -->
+        <section id="tab1" class="space-y-6">
+            <div class="flex flex-wrap gap-3 items-center justify-between">
+                <div class="flex space-x-2">
+                    <button onclick="openTeacherModal()" class="px-4 py-2.5 btn-green rounded-2xl font-black text-xs shadow-md">
+                        <i class="fa-solid fa-user-plus mr-1"></i> + Thêm Giáo Viên Mới
+                    </button>
+                    <button onclick="openRoomModal()" class="px-4 py-2.5 btn-orange rounded-2xl font-black text-xs shadow-md">
+                        <i class="fa-solid fa-door-open mr-1"></i> + Thêm Phòng Học
+                    </button>
+                </div>
+                <button onclick="openChangePassModal()" class="px-4 py-2.5 bg-amber-500 text-white rounded-2xl font-black text-xs shadow-md">
+                    <i class="fa-solid fa-key mr-1"></i> Đổi Mật Khẩu
+                </button>
+            </div>
+
+            <!-- Bảng Giáo Viên -->
+            <div class="bg-white p-5 rounded-3xl shadow-sm border-2 border-orange-100">
+                <h3 class="font-black text-orange-600 mb-3 text-sm flex items-center">
+                    <i class="fa-solid fa-chalkboard-user mr-2 text-green-500"></i> Danh Sách Giáo Viên
+                </h3>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-xs">
+                        <thead class="bg-orange-500 text-white font-bold">
+                            <tr>
+                                <th class="p-2.5 rounded-l-xl">STT</th>
+                                <th class="p-2.5">MÃ GV</th>
+                                <th class="p-2.5">HỌ VÀ TÊN</th>
+                                <th class="p-2.5">THÔNG TIN CÁ NHÂN</th>
+                                <th class="p-2.5">MÔN & LỚP DẠY</th>
+                                <th class="p-2.5">QUYỀN XEM CHÉO</th>
+                                <th class="p-2.5 text-center rounded-r-xl">THAO TÁC</th>
+                            </tr>
+                        </thead>
+                        <tbody id="teacherBody" class="divide-y divide-gray-100"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Bảng Phòng Học -->
+            <div class="bg-white p-5 rounded-3xl shadow-sm border-2 border-green-100">
+                <h3 class="font-black text-green-600 mb-3 text-sm flex items-center">
+                    <i class="fa-solid fa-school mr-2 text-orange-500"></i> Danh Sách Phòng Học
+                </h3>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-xs">
+                        <thead class="bg-green-600 text-white font-bold">
+                            <tr>
+                                <th class="p-2.5 rounded-l-xl">STT</th>
+                                <th class="p-2.5">MÃ PHÒNG</th>
+                                <th class="p-2.5">TÊN PHÒNG HỌC</th>
+                                <th class="p-2.5">SỨC CHỨA</th>
+                                <th class="p-2.5 text-center rounded-r-xl">THAO TÁC</th>
+                            </tr>
+                        </thead>
+                        <tbody id="roomBody" class="divide-y divide-gray-100"></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+
+        <!-- ================= TAB 2: THỜI KHÓA BIỂU ================= -->
+        <section id="tab2" class="hidden space-y-4">
+            <div class="bg-white p-4 rounded-3xl shadow-sm border-2 border-orange-100 flex flex-wrap gap-3 items-center justify-between text-xs">
+                <div class="flex flex-wrap items-center gap-2">
+                    <span class="font-black text-orange-600">Bộ Lọc:</span>
+                    <select id="tkbYear" onchange="onYearMonthChange()" class="p-2 border-2 border-orange-100 rounded-xl font-bold text-gray-700"></select>
+                    <select id="tkbMonth" onchange="onYearMonthChange()" class="p-2 border-2 border-orange-100 rounded-xl font-bold text-gray-700"></select>
+                    <select id="tkbWeek" onchange="renderTKB()" class="p-2 border-2 border-orange-100 rounded-xl font-bold text-gray-700 min-w-[240px]"></select>
+                </div>
+                <div class="flex flex-wrap gap-2">
+                    <button onclick="openBatchSlotModal()" class="px-3 py-2 bg-indigo-600 text-white rounded-xl font-bold shadow hover:bg-indigo-700">
+                        <i class="fa-solid fa-layer-group mr-1"></i> + Thêm Ca Hàng Loạt
+                    </button>
+                    <button onclick="downloadSampleTKBExcel()" class="px-3 py-2 bg-amber-500 text-white rounded-xl font-bold shadow hover:bg-amber-600">
+                        <i class="fa-solid fa-download mr-1"></i> Tải Mẫu Excel TKB
+                    </button>
+                    <label class="px-3 py-2 bg-purple-600 text-white rounded-xl font-bold cursor-pointer hover:bg-purple-700 shadow">
+                        <i class="fa-solid fa-file-import mr-1"></i> Import TKB Excel/CSV
+                        <input type="file" id="importExcelInput" accept=".xlsx, .xls, .csv" onchange="importTKBExcel(event)" class="hidden">
+                    </label>
+                    <button onclick="copyLastWeek()" class="px-3 py-2 btn-green rounded-xl font-bold shadow">Sao Chép Tuần Trước</button>
+                    <button onclick="clearCurrentWeek()" class="px-3 py-2 bg-red-500 text-white rounded-xl font-bold shadow">Xóa Tất Cả Tuần Này</button>
+                </div>
+            </div>
+
+            <!-- Container Các Bảng TKB -->
+            <div id="tkbTables" class="space-y-6"></div>
+        </section>
+
+
+        <!-- ================= TAB 3: BÁO CÁO & HÓA ĐƠN ================= -->
+        <section id="tab3" class="hidden space-y-6">
+            <div class="bg-white p-4 rounded-3xl shadow-sm border-2 border-orange-100 flex flex-wrap justify-between items-center gap-3 text-xs">
+                <div class="flex items-center space-x-2">
+                    <span class="font-black text-orange-600">Tháng Báo Cáo:</span>
+                    <select id="repYear" onchange="renderReports()" class="p-2 border-2 border-orange-100 rounded-xl font-bold"></select>
+                    <select id="repMonth" onchange="renderReports()" class="p-2 border-2 border-orange-100 rounded-xl font-bold"></select>
+                </div>
+                <div class="flex space-x-2">
+                    <button onclick="openClassStudentModal()" class="px-4 py-2 btn-green rounded-xl font-bold shadow">
+                        <i class="fa-solid fa-pen-to-square mr-1"></i> Khai Báo Số HS Lớp
+                    </button>
+                    <button onclick="openInvoiceGeneratorModal()" class="px-4 py-2 bg-indigo-600 text-white rounded-xl font-bold shadow hover:bg-indigo-700">
+                        <i class="fa-solid fa-file-invoice-dollar mr-1"></i> Tạo Thông Báo Hóa Đơn
+                    </button>
+                </div>
+            </div>
+
+            <!-- 1. BÁO CÁO GIẢNG DẠY -->
+            <div class="bg-white p-5 rounded-3xl shadow-sm border-2 border-orange-100">
+                <h3 class="font-black text-orange-600 mb-3 text-sm">1. Báo Cáo Giảng Dạy Giáo Viên</h3>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-xs">
+                        <thead class="bg-orange-500 text-white font-bold">
+                            <tr>
+                                <th class="p-2.5">STT</th>
+                                <th class="p-2.5">MÃ GV</th>
+                                <th class="p-2.5">HỌ TÊN GIÁO VIÊN</th>
+                                <th class="p-2.5 text-center">TỔNG CA ĐK</th>
+                                <th class="p-2.5 text-center">TỔNG CA ĐIỂM DANH</th>
+                                <th class="p-2.5 text-right">TẠM TÍNH</th>
+                                <th class="p-2.5 text-right">CHIẾT KHẤU</th>
+                                <th class="p-2.5 text-right">THỰC THANH TOÁN</th>
+                            </tr>
+                        </thead>
+                        <tbody id="repTeacherBody" class="divide-y divide-gray-100"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 2. BÁO CÁO DOANH THU PHÒNG -->
+            <div class="bg-white p-5 rounded-3xl shadow-sm border-2 border-green-100">
+                <h3 class="font-black text-green-600 mb-1 text-sm">2. Báo Cáo Doanh Thu Theo Phòng Học</h3>
+                <p class="text-[11px] text-gray-500 mb-3 font-semibold">* Doanh thu phòng được tự động tính theo tiền ca dạy đã trừ chiết khấu của Giáo viên dạy tại phòng đó.</p>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-xs">
+                        <thead class="bg-green-600 text-white font-bold">
+                            <tr>
+                                <th class="p-2.5">STT</th>
+                                <th class="p-2.5">PHÒNG HỌC</th>
+                                <th class="p-2.5 text-center">TỔNG CA DẠY</th>
+                                <th class="p-2.5 text-right">TỔNG TIỀN PHÒNG (SAU CK)</th>
+                                <th class="p-2.5 text-right">ĐÃ THU</th>
+                                <th class="p-2.5 text-right">CHƯA THU</th>
+                            </tr>
+                        </thead>
+                        <tbody id="repRoomBody" class="divide-y divide-gray-100"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 3. TỔNG HỢP THU THEO GIÁO VIÊN -->
+            <div class="bg-white p-5 rounded-3xl shadow-sm border-2 border-amber-100">
+                <h3 class="font-black text-amber-600 mb-3 text-sm">3. Tổng Hợp Thu Theo Giáo Viên</h3>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-xs">
+                        <thead class="bg-amber-500 text-white font-bold">
+                            <tr>
+                                <th class="p-2.5">STT</th>
+                                <th class="p-2.5">HỌ TÊN GIÁO VIÊN</th>
+                                <th class="p-2.5 text-right">CẦN THU (THỰC TT)</th>
+                                <th class="p-2.5 text-right">TỔNG ĐÃ THU</th>
+                                <th class="p-2.5 text-right">CÒN LẠI</th>
+                                <th class="p-2.5 text-center">LỊCH SỬ & THU TIỀN</th>
+                            </tr>
+                        </thead>
+                        <tbody id="repCollectBody" class="divide-y divide-gray-100"></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+    </main>
+
+
+    <!-- ================= MODAL POP-UPS ================= -->
+
+    <!-- FORM THÊM HÀNG LOẠT CA DẠY -->
+    <div id="batchSlotModal" class="fixed inset-0 bg-black/50 hidden items-center justify-center p-4 z-50">
+        <div class="bg-white w-full max-w-6xl rounded-3xl p-6 shadow-2xl border-4 border-indigo-400 max-h-[92vh] flex flex-col">
+            <div class="flex justify-between items-center mb-3">
+                <h3 class="text-lg font-black text-indigo-700 flex items-center">
+                    <i class="fa-solid fa-layer-group mr-2"></i> Thêm Hàng Loạt Ca Dạy Trong Tháng
+                </h3>
+                <span class="text-xs font-bold text-gray-500">* Nhập số học sinh đồng nghĩa với việc Đã Điểm Danh</span>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-3 bg-indigo-50 p-3 rounded-2xl border border-indigo-100 text-xs mb-4">
+                <div>
+                    <label class="font-bold text-indigo-900 block mb-1">1. Chọn Phòng Học</label>
+                    <select id="bsRoom" onchange="renderBatchTable()" class="w-full p-2 border-2 border-indigo-200 rounded-xl font-bold text-indigo-700 bg-white"></select>
+                </div>
+                <div>
+                    <label class="font-bold text-indigo-900 block mb-1">2. Chọn Năm</label>
+                    <select id="bsYear" onchange="renderBatchTable()" class="w-full p-2 border-2 border-indigo-200 rounded-xl font-bold bg-white"></select>
+                </div>
+                <div>
+                    <label class="font-bold text-indigo-900 block mb-1">3. Chọn Tháng</label>
+                    <select id="bsMonth" onchange="renderBatchTable()" class="w-full p-2 border-2 border-indigo-200 rounded-xl font-bold bg-white"></select>
+                </div>
+            </div>
+
+            <div class="overflow-y-auto overflow-x-auto border rounded-2xl flex-grow mb-4">
+                <table class="w-full text-xs text-left border-collapse">
+                    <thead class="bg-indigo-600 text-white font-bold sticky top-0 z-10">
+                        <tr>
+                            <th class="p-2 border border-indigo-500 w-28 text-center">Thứ & Ngày</th>
+                            <th class="p-2 border border-indigo-500 text-center">Ca 1 (7:45 - 9:15)</th>
+                            <th class="p-2 border border-indigo-500 text-center">Ca 2 (9:30 - 11:00)</th>
+                            <th class="p-2 border border-indigo-500 text-center">Ca 3 (13:45 - 15:15)</th>
+                            <th class="p-2 border border-indigo-500 text-center">Ca 4 (15:30 - 17:00)</th>
+                            <th class="p-2 border border-indigo-500 text-center">Ca 5 (17:15 - 18:45)</th>
+                            <th class="p-2 border border-indigo-500 text-center">Ca 6 (19:00 - 20:30)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="batchTableBody" class="divide-y divide-gray-200"></tbody>
+                </table>
+            </div>
+
+            <div class="flex justify-end space-x-2 text-xs">
+                <button type="button" onclick="closeModal('batchSlotModal')" class="px-5 py-2.5 bg-gray-200 rounded-xl font-bold">Hủy Bỏ</button>
+                <button type="button" onclick="saveBatchSlots()" class="px-6 py-2.5 bg-indigo-600 text-white rounded-xl font-black shadow hover:bg-indigo-700">
+                    <i class="fa-solid fa-floppy-disk mr-1"></i> Lưu Tất Cả Ca Dạy
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- FORM THÊM / SỬA GIÁO VIÊN -->
+    <div id="teacherModal" class="fixed inset-0 bg-black/50 hidden items-center justify-center p-4 z-50">
+        <div class="bg-white w-full max-w-xl rounded-3xl p-6 shadow-2xl border-4 border-green-300 max-h-[90vh] overflow-y-auto">
+            <h3 id="tmTitle" class="text-lg font-black text-green-600 mb-4">Thêm Giáo Viên Mới</h3>
+            <form onsubmit="saveTeacher(event)" class="space-y-3 text-xs">
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="font-bold text-gray-700">Mã Giáo Viên</label>
+                        <input type="text" id="tmCode" readonly class="w-full p-2.5 bg-gray-100 border rounded-xl font-bold text-green-600">
+                    </div>
+                    <div>
+                        <label class="font-bold text-gray-700">Giới Tính</label>
+                        <select id="tmGender" class="w-full p-2.5 border rounded-xl font-semibold">
+                            <option value="Cô">Nữ (Cô)</option>
+                            <option value="Thầy">Nam (Thầy)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="font-bold text-gray-700">Họ và Tên Giáo Viên</label>
+                    <input type="text" id="tmName" required oninput="autoEmailTeacher()" placeholder="Nguyễn Thị Trà Mai" class="w-full p-2.5 border rounded-xl font-semibold">
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="font-bold text-gray-700">Ngày sinh</label>
+                        <input type="date" id="tmDob" class="w-full p-2.5 border rounded-xl">
+                    </div>
+                    <div>
+                        <label class="font-bold text-gray-700">Điện thoại</label>
+                        <input type="tel" id="tmPhone" class="w-full p-2.5 border rounded-xl">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="font-bold text-gray-700">Địa chỉ (Sau sáp nhập)</label>
+                    <input type="text" id="tmAddress" placeholder="Thôn 16, M'Đrắk, Đắk Lắk" class="w-full p-2.5 border rounded-xl">
+                </div>
+
+                <div class="grid grid-cols-2 gap-3 bg-green-50 p-3 rounded-2xl border border-green-200">
+                    <div>
+                        <label class="font-bold text-green-800">Môn Dạy</label>
+                        <input type="text" id="tmSubject" placeholder="Toán, Văn, Anh..." class="w-full p-2.5 border rounded-xl bg-white font-semibold">
+                    </div>
+                    <div>
+                        <label class="font-bold text-green-800">Lớp Dạy (Phân cách bởi dấu phẩy)</label>
+                        <input type="text" id="tmClasses" placeholder="Lớp 6A, Lớp 7B" class="w-full p-2.5 border rounded-xl bg-white font-semibold">
+                    </div>
+                </div>
+
+                <div class="bg-amber-50 p-3 rounded-2xl border border-amber-200 space-y-2">
+                    <label class="font-black text-amber-800 block">Cấp Quyền Xem Tài Khoản Cho GV Khác:</label>
+                    <div id="sharedAccessList" class="max-h-28 overflow-y-auto space-y-1 bg-white p-2 rounded-xl border"></div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3 bg-orange-50 p-3 rounded-2xl border border-orange-200">
+                    <div>
+                        <label class="font-bold text-orange-800">Email Cấp</label>
+                        <input type="email" id="tmEmail" class="w-full p-2.5 border rounded-xl bg-white font-bold text-orange-600">
+                    </div>
+                    <div>
+                        <label class="font-bold text-orange-800">Mật khẩu</label>
+                        <input type="text" id="tmPass" value="123456" class="w-full p-2.5 border rounded-xl bg-white font-bold">
+                    </div>
+                </div>
+
+                <div class="flex justify-end space-x-2 pt-2">
+                    <button type="button" onclick="closeModal('teacherModal')" class="px-4 py-2 bg-gray-200 rounded-xl font-bold">Hủy</button>
+                    <button type="submit" class="px-5 py-2 btn-green rounded-xl font-bold shadow">Lưu Giáo Viên</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- FORM THÊM / SỬA PHÒNG HỌC -->
+    <div id="roomModal" class="fixed inset-0 bg-black/50 hidden items-center justify-center p-4 z-50">
+        <div class="bg-white w-full max-w-md rounded-3xl p-6 shadow-2xl border-4 border-orange-300">
+            <h3 class="text-lg font-black text-orange-600 mb-4">Thông Tin Phòng Học</h3>
+            <div class="space-y-3 text-xs">
+                <div>
+                    <label class="font-bold">Mã Phòng Học</label>
+                    <input type="text" id="rmCode" readonly class="w-full p-2.5 bg-gray-100 rounded-xl font-bold text-orange-600">
+                </div>
+                <div>
+                    <label class="font-bold">Tên Phòng Học</label>
+                    <input type="text" id="rmName" placeholder="TỔ - PHÒNG 1" class="w-full p-2.5 border rounded-xl font-semibold">
+                </div>
+                <div>
+                    <label class="font-bold">Sức Chứa (Người)</label>
+                    <input type="number" id="rmCap" placeholder="30" class="w-full p-2.5 border rounded-xl font-bold">
+                </div>
+            </div>
+            <div class="flex justify-end space-x-2 mt-5 text-xs">
+                <button onclick="closeModal('roomModal')" class="px-4 py-2 bg-gray-200 rounded-xl font-bold">Hủy</button>
+                <button onclick="saveRoom()" class="px-5 py-2 btn-orange rounded-xl font-bold shadow">Lưu Phòng</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- FORM ĐỔI MẬT KHẨU -->
+    <div id="passModal" class="fixed inset-0 bg-black/50 hidden items-center justify-center p-4 z-50">
+        <div class="bg-white w-full max-w-md rounded-3xl p-6 shadow-2xl border-4 border-amber-300">
+            <h3 class="text-lg font-black text-amber-600 mb-4">Đổi Mật Khẩu Tài Khoản</h3>
+            <div class="space-y-3 text-xs">
+                <div>
+                    <label class="font-bold">Tài Khoản</label>
+                    <select id="pmAcc" onchange="onPassAccChange()" class="w-full p-2.5 border rounded-xl font-bold"></select>
+                </div>
+                <div>
+                    <label class="font-bold">Mật Khẩu Cũ</label>
+                    <input type="text" id="pmOld" readonly class="w-full p-2.5 bg-gray-100 rounded-xl font-bold">
+                </div>
+                <div>
+                    <label class="font-bold">Mật Khẩu Mới</label>
+                    <input type="password" id="pmNew" class="w-full p-2.5 border rounded-xl font-bold">
+                </div>
+                <div>
+                    <label class="font-bold">Xác Nhận Mật Khẩu Mới</label>
+                    <input type="password" id="pmConfirm" class="w-full p-2.5 border rounded-xl font-bold">
+                </div>
+            </div>
+            <div class="flex justify-end space-x-2 mt-5 text-xs">
+                <button onclick="closeModal('passModal')" class="px-4 py-2 bg-gray-200 rounded-xl font-bold">Hủy</button>
+                <button onclick="savePass()" class="px-5 py-2 bg-amber-500 text-white rounded-xl font-bold shadow">Lưu Đổi</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- FORM THÊM CA DẠY -->
+    <div id="slotModal" class="fixed inset-0 bg-black/50 hidden items-center justify-center p-4 z-50">
+        <div class="bg-white w-full max-w-md rounded-3xl p-6 shadow-2xl border-4 border-orange-300">
+            <h3 class="text-lg font-black text-orange-600 mb-1">Thêm Ca Dạy Mới</h3>
+            <p id="slotInfo" class="text-xs font-bold text-green-600 mb-3"></p>
+            <div class="space-y-3 text-xs">
+                <div>
+                    <label class="font-bold">Chọn Giáo Viên</label>
+                    <select id="smTeacher" onchange="onSlotTeacherChange()" class="w-full p-2.5 border rounded-xl font-bold"></select>
+                </div>
+                <div>
+                    <label class="font-bold">Chọn Lớp Dạy</label>
+                    <select id="smClass" class="w-full p-2.5 border rounded-xl font-bold"></select>
+                </div>
+            </div>
+            <div class="flex justify-end space-x-2 mt-5 text-xs">
+                <button onclick="closeModal('slotModal')" class="px-4 py-2 bg-gray-200 rounded-xl font-bold">Hủy</button>
+                <button onclick="saveSlot()" class="px-5 py-2 btn-orange rounded-xl font-bold shadow">Lưu Ca Dạy</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- FORM ĐIỂM DANH -->
+    <div id="attModal" class="fixed inset-0 bg-black/50 hidden items-center justify-center p-4 z-50">
+        <div class="bg-white w-full max-w-md rounded-3xl p-6 shadow-2xl border-4 border-green-300">
+            <h3 class="text-lg font-black text-green-600 mb-1">Điểm Danh Ca Dạy</h3>
+            <p id="attInfo" class="text-xs text-gray-500 mb-3 font-semibold"></p>
+            <div class="text-xs">
+                <label class="font-bold text-gray-700">Nhập Số Học Sinh Đi Học Thực Tế</label>
+                <input type="number" id="attCount" placeholder="VD: 15" class="w-full p-3 border-2 border-green-300 rounded-2xl font-black text-xl text-green-700 mt-1">
+            </div>
+            <div class="flex justify-end space-x-2 mt-5 text-xs">
+                <button onclick="closeModal('attModal')" class="px-4 py-2 bg-gray-200 rounded-xl font-bold">Hủy</button>
+                <button onclick="saveAttendance()" class="px-5 py-2 btn-green rounded-xl font-bold shadow">Lưu Điểm Danh</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- FORM KHAI BÁO SỐ HỌC SINH CÁC LỚP -->
+    <div id="classStudentModal" class="fixed inset-0 bg-black/50 hidden items-center justify-center p-4 z-50">
+        <div class="bg-white w-full max-w-md rounded-3xl p-6 shadow-2xl border-4 border-green-300">
+            <h3 class="text-lg font-black text-green-600 mb-3">Khai Báo Học Sinh Từng Lớp</h3>
+            <div class="space-y-3 text-xs">
+                <div>
+                    <label class="font-bold">Chọn Giáo Viên</label>
+                    <select id="csmTeacher" onchange="renderClassInputs()" class="w-full p-2.5 border rounded-xl font-bold"></select>
+                </div>
+                <div id="classInputsContainer" class="space-y-2 max-h-52 overflow-y-auto p-3 bg-gray-50 rounded-2xl border"></div>
+            </div>
+            <div class="flex justify-end space-x-2 mt-5 text-xs">
+                <button onclick="closeModal('classStudentModal')" class="px-4 py-2 bg-gray-200 rounded-xl font-bold">Hủy</button>
+                <button onclick="saveClassStudents()" class="px-5 py-2 btn-green rounded-xl font-bold shadow">Lưu Số HS</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- FORM BÁO CÁO CHI TIẾT GIÁO VIÊN -->
+    <div id="teacherDetailModal" class="fixed inset-0 bg-black/50 hidden items-center justify-center p-4 z-50">
+        <div class="bg-white w-full max-w-4xl rounded-3xl p-6 shadow-2xl border-4 border-orange-300 max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center mb-3">
+                <h3 id="dtTeacherName" class="text-lg font-black text-orange-600">Chi Tiết Giảng Dạy</h3>
+                <button onclick="exportTeacherExcel()" class="px-4 py-2 bg-green-600 text-white font-bold rounded-xl text-xs shadow hover:bg-green-700">
+                    <i class="fa-solid fa-file-excel mr-1"></i> Tải Báo Cáo Excel (Times New Roman 13pt A4)
+                </button>
+            </div>
+
+            <div class="overflow-x-auto mb-4">
+                <table class="w-full text-left text-xs border border-gray-200 rounded-xl overflow-hidden">
+                    <thead class="bg-orange-100 text-orange-900 font-bold">
+                        <tr>
+                            <th class="p-2 border">STT</th>
+                            <th class="p-2 border">Ngày Dạy</th>
+                            <th class="p-2 border">Giờ Dạy</th>
+                            <th class="p-2 border">Phòng Dạy</th>
+                            <th class="p-2 border">Lớp Dạy</th>
+                            <th class="p-2 border text-center">ĐĐ (Số HS)</th>
+                            <th class="p-2 border text-center">Số HS Lấy Tính</th>
+                            <th class="p-2 border text-right">Thành Tiền Ca</th>
+                        </tr>
+                    </thead>
+                    <tbody id="dtBody" class="divide-y divide-gray-100"></tbody>
+                </table>
+            </div>
+
+            <div class="p-4 bg-orange-50 rounded-2xl border border-orange-200 space-y-2 text-xs">
+                <div class="flex justify-between font-bold text-gray-700">
+                    <span>TỔNG TIỀN TẠM TÍNH (ĐÃ ÉP TRẦN 87.5K - 175K):</span>
+                    <span id="dtTempMoney" class="text-base text-orange-600 font-black">0 VNĐ</span>
+                </div>
+                <div class="flex justify-between items-center border-t pt-2 border-orange-200">
+                    <span class="font-bold text-gray-700">CHIẾT KHẤU GIÁO VIÊN:</span>
+                    <div class="flex space-x-2">
+                        <select id="dtDiscType" onchange="calcDetailMoney()" class="p-1.5 border rounded-xl font-bold">
+                            <option value="percent">% Phần Trăm</option>
+                            <option value="amount">Số Tiền Trực Tiếp</option>
+                        </select>
+                        <input type="number" id="dtDiscVal" oninput="calcDetailMoney()" class="p-1.5 border rounded-xl w-32 text-right font-bold text-orange-600" value="0">
+                    </div>
+                </div>
+                <div class="flex justify-between font-black text-green-700 text-base border-t pt-2 border-orange-200">
+                    <span>THỰC THANH TOÁN:</span>
+                    <span id="dtFinalMoney">0 VNĐ</span>
+                </div>
+            </div>
+
+            <div class="flex justify-end mt-4 text-xs">
+                <button onclick="saveDetailDiscount()" class="px-6 py-2.5 btn-orange rounded-xl font-bold shadow">Lưu & Đóng</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- FORM THU TIỀN GIÁO VIÊN & LỊCH SỬ THU -->
+    <div id="receiptModal" class="fixed inset-0 bg-black/50 hidden items-center justify-center p-4 z-50">
+        <div class="bg-white w-full max-w-lg rounded-3xl p-6 shadow-2xl border-4 border-amber-300">
+            <h3 id="rcTeacherName" class="text-lg font-black text-amber-600 mb-3">Quản Lý Thu Tiền Giáo Viên</h3>
+
+            <div class="space-y-2 text-xs bg-amber-50 p-3 rounded-2xl border border-amber-200 mb-4">
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="font-bold">Ngày Thu</label>
+                        <input type="date" id="rcDate" class="w-full p-2 border rounded-xl font-bold">
+                    </div>
+                    <div>
+                        <label class="font-bold">Người Thu</label>
+                        <input type="text" id="rcCollector" placeholder="Tên nhân viên thu" class="w-full p-2 border rounded-xl font-semibold">
+                    </div>
+                </div>
+                <div>
+                    <label class="font-bold">Số Tiền Thu (VNĐ)</label>
+                    <input type="number" id="rcAmount" placeholder="0" class="w-full p-2 border rounded-xl font-black text-amber-600">
+                </div>
+                <button onclick="saveReceipt()" class="w-full py-2 bg-amber-500 text-white rounded-xl font-bold shadow hover:bg-amber-600">+ Thêm Đợt Thu</button>
+            </div>
+
+            <h4 class="font-bold text-xs mb-2">Lịch Sử Các Đợt Thu:</h4>
+            <div class="max-h-40 overflow-y-auto mb-4 border rounded-xl">
+                <table class="w-full text-left text-xs">
+                    <thead class="bg-gray-100 font-bold">
+                        <tr>
+                            <th class="p-2">Ngày</th>
+                            <th class="p-2">Người Thu</th>
+                            <th class="p-2 text-right">Số Tiền</th>
+                            <th class="p-2 text-center">Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody id="rcHistoryBody" class="divide-y"></tbody>
+                </table>
+            </div>
+
+            <div class="flex justify-end text-xs">
+                <button onclick="closeModal('receiptModal')" class="px-5 py-2 bg-gray-200 rounded-xl font-bold">Đóng</button>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- MODAL TẠO THÔNG BÁO HÓA ĐƠN PRO -->
+    <div id="invoiceModal" class="fixed inset-0 bg-black/50 hidden items-center justify-center p-4 z-50">
+        <div class="bg-white w-full max-w-4xl rounded-3xl p-6 shadow-2xl border-4 border-indigo-300 max-h-[95vh] overflow-y-auto">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-black text-indigo-700"><i class="fa-solid fa-file-invoice-dollar mr-2"></i>Tạo Thông Báo Hóa Đơn Lớp Học</h3>
+                <button onclick="downloadPDFInvoice()" class="px-4 py-2 bg-indigo-600 text-white font-bold rounded-xl text-xs shadow hover:bg-indigo-700">
+                    <i class="fa-solid fa-file-pdf mr-1"></i> Tải File PDF Hóa Đơn
+                </button>
+            </div>
+
+            <div class="bg-indigo-50 p-4 rounded-2xl border border-indigo-200 mb-4 space-y-3 text-xs">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <div>
+                        <label class="font-bold text-indigo-900">Chọn Giáo Viên</label>
+                        <select id="invTeacherSelect" onchange="generateInvoiceData()" class="w-full p-2 border rounded-xl font-bold"></select>
+                    </div>
+                    <div>
+                        <label class="font-bold text-indigo-900">Số Hóa Đơn (Tự Sinh YYYYMM0001)</label>
+                        <input type="text" id="invNumber" readonly class="w-full p-2 bg-gray-100 border rounded-xl font-bold text-indigo-700">
+                    </div>
+                    <div>
+                        <label class="font-bold text-indigo-900">Người Phụ Trách (Sửa được)</label>
+                        <input type="text" id="invManager" value="TRẦN VŨ LỰC" oninput="generateInvoiceData()" class="w-full p-2 border rounded-xl font-bold">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-3 border-t pt-2 border-indigo-200">
+                    <div>
+                        <label class="font-bold text-indigo-900">Từ Ngày Dạy</label>
+                        <input type="date" id="invStartDate" onchange="generateInvoiceData()" class="w-full p-2 border rounded-xl font-bold">
+                    </div>
+                    <div>
+                        <label class="font-bold text-indigo-900">Đến Ngày Dạy</label>
+                        <input type="date" id="invEndDate" onchange="generateInvoiceData()" class="w-full p-2 border rounded-xl font-bold">
+                    </div>
+                    <div>
+                        <label class="font-bold text-indigo-900">Hạn Thanh Toán</label>
+                        <input type="date" id="invDueDate" onchange="generateInvoiceData()" class="w-full p-2 border rounded-xl font-bold">
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex justify-between items-center mb-3">
+                <span class="font-bold text-xs text-gray-700">Nội dung dòng phí hiển thị trong Hóa Đơn:</span>
+                <button onclick="addCustomInvoiceRow()" class="px-3 py-1.5 bg-green-500 text-white font-bold rounded-xl text-xs shadow hover:bg-green-600">
+                    + Thêm Dòng Thu Nguồn Khác (Nhập tay)
+                </button>
+            </div>
+
+            <div id="invoicePrintArea" class="bg-white p-8 rounded-xl border border-gray-300 text-gray-800 tnr-font space-y-4">
+                <div class="flex justify-between items-start border-b-2 border-cyan-400 pb-4">
+                    <div>
+                        <h2 class="text-2xl font-bold text-cyan-500 tracking-wide" id="invPrintHeaderTitle">HÓA ĐƠN DẠY HỌC</h2>
+                        <p class="text-sm"><strong>Số HÓA ĐƠN:</strong> <span id="invPrintNum"></span></p>
+                        <p class="text-sm"><strong>Ngày lập hóa đơn:</strong> <span id="invPrintDate"></span></p>
+                        <p class="text-sm"><strong>Hạn thanh toán:</strong> <span id="invPrintDueDate"></span></p>
+                    </div>
+                    <div class="text-right">
+                        <div class="w-16 h-16 border-4 border-orange-400 rounded-2xl flex flex-col items-center justify-center font-black text-orange-500 ml-auto">
+                            <span class="text-xl leading-none">TNL</span>
+                        </div>
+                        <h3 class="font-bold text-base text-cyan-600 mt-1">Trung tâm Thần Đồng</h3>
+                        <p class="text-xs">Điện thoại: 0348067557</p>
+                        <p class="text-xs">Địa chỉ: Thôn 16, xã M'Đrắk, Đắk Lắk</p>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4 text-sm bg-gray-50 p-3 rounded-lg border">
+                    <div>
+                        <p class="text-cyan-600 font-bold">Gửi đến</p>
+                        <p><strong>Giáo viên:</strong> <span id="invPrintTeacher"></span></p>
+                        <p><strong>Điện thoại:</strong> <span id="invPrintPhone"></span></p>
+                    </div>
+                    <div>
+                        <p><strong>Lớp học:</strong> DẠY THÊM HỌC THÊM</p>
+                        <p><strong>Phụ trách:</strong> <span id="invPrintManager">TRẦN VŨ LỰC</span></p>
+                        <p><strong>Địa chỉ:</strong> M'Đrắk, Đắk Lắk</p>
+                    </div>
+                </div>
+
+                <table class="w-full text-left border-collapse text-xs">
+                    <thead>
+                        <tr class="bg-cyan-100 text-cyan-900 border-b-2 border-cyan-300 font-bold">
+                            <th class="p-2 border text-center">STT</th>
+                            <th class="p-2 border">Lớp</th>
+                            <th class="p-2 border text-center">Tổng số tiết</th>
+                            <th class="p-2 border text-center">Số học sinh</th>
+                            <th class="p-2 border text-right">Tổng tiền (Đ)</th>
+                            <th class="p-2 border text-right">Chiết khấu (Đ)</th>
+                            <th class="p-2 border text-right">Thành tiền (Đ)</th>
+                            <th class="p-2 border">Ghi chú</th>
+                        </tr>
+                    </thead>
+                    <tbody id="invPrintBody" class="divide-y"></tbody>
+                </table>
+
+                <div class="flex justify-end font-bold text-sm text-cyan-800">
+                    <span>Tổng tiền thanh toán (Đ): <span id="invPrintTotal" class="text-base font-black">0</span></span>
+                </div>
+
+                <div class="border-t border-gray-200 pt-3 grid grid-cols-2 gap-4 text-xs">
+                    <div>
+                        <p class="font-bold text-cyan-700">THANH TOÁN</p>
+                        <p>Tên ngân hàng: <strong>BIDV</strong></p>
+                        <p>Số tài khoản: <strong>6320459459</strong></p>
+                        <p>Tên tài khoản: <strong>TRẦN VŨ LỰC</strong></p>
+                    </div>
+                    <div>
+                        <p class="font-bold text-cyan-700">GHI CHÚ</p>
+                        <p class="italic text-gray-600">Quý thầy cô kiểm tra lại thông tin hóa đơn, nếu có sai sót vui lòng liên hệ trung tâm để xác nhận. Xin Cảm Ơn</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex justify-end space-x-2 mt-4 text-xs">
+                <button onclick="closeModal('invoiceModal')" class="px-5 py-2 bg-gray-200 rounded-xl font-bold">Đóng</button>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- MODAL XÁC NHẬN ĐĂNG XUẤT VỚI BẮN PHÁO HOA -->
+    <div id="logoutModal" class="fixed inset-0 bg-black/60 hidden items-center justify-center p-4 z-50">
+        <div class="bg-white w-full max-w-md rounded-3xl p-6 shadow-2xl border-4 border-orange-400 text-center relative overflow-hidden">
+            <div class="w-20 h-20 bg-orange-100 text-orange-500 rounded-full flex items-center justify-center mx-auto mb-3 text-3xl font-black cute-bounce">
+                <i class="fa-solid fa-face-smile-beam"></i>
+            </div>
+            <h3 class="text-xl font-black text-orange-600 mb-2">Xác Nhận Đăng Xuất</h3>
+            <p id="logoutGreetingText" class="text-sm font-bold text-gray-700 mb-6"></p>
+
+            <div class="flex justify-center space-x-3 text-sm">
+                <button onclick="closeModal('logoutModal')" class="px-6 py-2.5 bg-gray-200 text-gray-700 rounded-2xl font-bold hover:bg-gray-300">Ở Lại</button>
+                <button onclick="confirmLogout()" class="px-6 py-2.5 btn-orange rounded-2xl font-bold shadow-lg">Xác Nhận Đăng Xuất</button>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- JS LOGIC XỬ LÝ TOÀN BỘ -->
+    <script>
+        // CẤU HÌNH FIREBASE CLOUD CHÍNH THỨC CỦA DỰ ÁN DTHT
+        const firebaseConfig = {
+            apiKey: "AIzaSyCkSi4oAEcluPU8GyXjoE3NgdWsgxtUd0w",
+            authDomain: "dtht-4e969.firebaseapp.com",
+            projectId: "dtht-4e969",
+            storageBucket: "dtht-4e969.firebasestorage.app",
+            messagingSenderId: "877808371845",
+            appId: "1:877808371845:web:dabb14af96e9a1458f41ec",
+            measurementId: "G-N01WPE9KPH"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const firestoreDb = firebase.firestore();
+
+        const QUOTES = [
+            "Mỗi ngày đi dạy là một ngày gieo mầm tương lai rực rỡ!",
+            "Thầy cô là người dẫn đường mở ra chân trời tri thức tươi sáng ✨",
+            "Sự tận tụy hôm nay là quả ngọt thành công của học sinh mai sau 🌱",
+            "Nụ cười rạng rỡ của học trò chính là động lực lớn nhất!",
+            "Hãy truyền cảm hứng bằng tình yêu thương và sự kiên nhẫn ❤️"
+        ];
+
+        function rotateQuotes() {
+            const idx = Math.floor(Math.random() * QUOTES.length);
+            const el = document.getElementById('quoteText');
+            if(el) el.innerText = `"${QUOTES[idx]}"`;
+        }
+        setInterval(rotateQuotes, 20 * 60 * 1000);
+
+        const DEFAULT_DB = {
+            staffs: [],
+            rooms: [
+                { id: 'PH001', name: 'TỔ - PHÒNG 1', capacity: 30 },
+                { id: 'PH002', name: 'TỔ - PHÒNG 2', capacity: 25 },
+                { id: 'PH003', name: 'TỔ - PHÒNG 3', capacity: 35 }
+            ],
+            schedules: [],
+            classStudents: {},
+            receipts: {},
+            discounts: {},
+            invoiceCounters: {}
+        };
+
+        let db = JSON.parse(JSON.stringify(DEFAULT_DB));
+
+        const SLOTS = ['7:45 - 9:15', '9:30 - 11:00', '13:45 - 15:15', '15:30 - 17:00', '17:15 - 18:45', '19:00 - 20:30'];
+        const COLORS = ['#FF7A00', '#22C55E', '#3B82F6', '#EC4899', '#8B5CF6', '#F59E0B', '#14B8A6'];
+
+        let selectedSlot = null;
+        let activeTeacherDetail = null;
+        let activeTeacherReceipt = null;
+        let customInvoiceRows = [];
+
+        window.onload = function() {
+            if (localStorage.getItem('userRole') !== 'admin') {
+                window.location.href = 'index.html';
+                return;
+            }
+
+            initDateControls();
+
+            // TỰ ĐỘNG ĐỒNG BỘ CỞ SỞ DỮ LIỆU TỪ CLOUD FIRESTORE REALTIME
+            firestoreDb.collection('crm_dt_db').doc('main_data').onSnapshot((doc) => {
+                if (doc.exists) {
+                    db = doc.data();
+                } else {
+                    saveDBCloud();
+                }
+                renderAll();
+            }, (error) => {
+                console.error("Lỗi lắng nghe Firebase:", error);
+            });
+
+            rotateQuotes();
+        };
+
+        // HÀM LƯU DỮ LIỆU TRỰC TIẾP LÊN FIREBASE CLOUD
+        function saveDBCloud() {
+            const statusEl = document.getElementById('syncStatus');
+            if (statusEl) {
+                statusEl.innerText = 'Đang lưu Cloud...';
+                statusEl.className = 'text-[10px] bg-amber-100 text-amber-700 px-2 py-1 rounded-lg font-bold';
+            }
+
+            firestoreDb.collection('crm_dt_db').doc('main_data').set(db).then(() => {
+                if (statusEl) {
+                    statusEl.innerText = 'Cloud Đã Đồng Bộ';
+                    statusEl.className = 'text-[10px] bg-green-100 text-green-700 px-2 py-1 rounded-lg font-bold';
+                }
+                renderAll();
+            }).catch(err => {
+                console.error("Lỗi khi lưu lên Cloud Firebase:", err);
+                alert("Lỗi lưu Cloud: " + err.message);
+            });
+        }
+
+        function renderAll() {
+            renderTeacherTable();
+            renderRoomTable();
+            renderTKB();
+            renderReports();
+        }
+
+        function resetDefaultData() {
+            if (confirm('Bạn có chắc chắn muốn xóa toàn bộ dữ liệu trên Đám mây và khôi phục về mặc định?')) {
+                db = JSON.parse(JSON.stringify(DEFAULT_DB));
+                saveDBCloud();
+            }
+        }
+
+        function switchTab(t) {
+            ['tab1','tab2','tab3'].forEach(id => document.getElementById(id).classList.add('hidden'));
+            document.getElementById(t).classList.remove('hidden');
+
+            ['btn-tab1','btn-tab2','btn-tab3'].forEach(id => {
+                document.getElementById(id).classList.remove('btn-orange');
+                document.getElementById(id).classList.add('bg-gray-100', 'text-gray-600');
+            });
+            document.getElementById('btn-' + t).classList.remove('bg-gray-100', 'text-gray-600');
+            document.getElementById('btn-' + t).classList.add('btn-orange');
+        }
+
+        function closeModal(id) { document.getElementById(id).classList.add('hidden'); document.getElementById(id).classList.remove('flex'); }
+        function openModal(id) { document.getElementById(id).classList.remove('hidden'); document.getElementById(id).classList.add('flex'); }
+
+        /* GIÁO VIÊN & PHÒNG */
+        function openTeacherModal(code = null) {
+            const listContainer = document.getElementById('sharedAccessList');
+            listContainer.innerHTML = '';
+
+            if (code) {
+                const s = db.staffs.find(x => x.code === code);
+                document.getElementById('tmTitle').innerText = 'Sửa Giáo Viên';
+                document.getElementById('tmCode').value = s.code;
+                document.getElementById('tmGender').value = s.gender || 'Cô';
+                document.getElementById('tmName').value = s.fullName;
+                document.getElementById('tmDob').value = s.dob || '';
+                document.getElementById('tmPhone').value = s.phone || '';
+                document.getElementById('tmAddress').value = s.address || '';
+                document.getElementById('tmSubject').value = s.subject || '';
+                document.getElementById('tmClasses').value = (s.classes || []).join(', ');
+                document.getElementById('tmEmail').value = s.email;
+                document.getElementById('tmPass').value = s.password;
+
+                db.staffs.filter(x => x.code !== code).forEach(other => {
+                    const isChecked = (s.sharedAccess || []).includes(other.email) ? 'checked' : '';
+                    listContainer.innerHTML += `
+                        <label class="flex items-center space-x-2 text-xs font-semibold text-gray-700">
+                            <input type="checkbox" value="${other.email}" ${isChecked} class="rounded text-orange-500">
+                            <span>${other.gender || ''} ${other.fullName} (${other.code})</span>
+                        </label>
+                    `;
+                });
+            } else {
+                document.getElementById('tmTitle').innerText = 'Thêm Giáo Viên Mới';
+                const count = db.staffs.length + 1;
+                document.getElementById('tmCode').value = 'GV' + String(count).padStart(3, '0');
+                document.getElementById('tmName').value = '';
+                document.getElementById('tmDob').value = '';
+                document.getElementById('tmPhone').value = '';
+                document.getElementById('tmAddress').value = '';
+                document.getElementById('tmSubject').value = '';
+                document.getElementById('tmClasses').value = '';
+                document.getElementById('tmEmail').value = '';
+                document.getElementById('tmPass').value = '123456';
+
+                db.staffs.forEach(other => {
+                    listContainer.innerHTML += `
+                        <label class="flex items-center space-x-2 text-xs font-semibold text-gray-700">
+                            <input type="checkbox" value="${other.email}" class="rounded text-orange-500">
+                            <span>${other.gender || ''} ${other.fullName} (${other.code})</span>
+                        </label>
+                    `;
+                });
+            }
+            openModal('teacherModal');
+        }
+
+        function autoEmailTeacher() {
+            try {
+                const nameInput = document.getElementById('tmName');
+                if (!nameInput) return;
+                const name = nameInput.value.trim();
+                if (!name) {
+                    document.getElementById('tmEmail').value = '';
+                    return;
+                }
+                const clean = name.normalize("NFD")
+                                  .replace(/[\u0300-\u036f]/g, "")
+                                  .replace(/đ/g, "d")
+                                  .replace(/Đ/g, "D");
+                const parts = clean.toLowerCase().split(' ').filter(p => p.trim() !== '');
+                if (parts.length === 0) return;
+
+                let initials = parts.slice(0, -1).map(p => p[0]).join('');
+                let lastName = parts[parts.length - 1];
+                document.getElementById('tmEmail').value = `${lastName}${initials}@thandong.com`;
+            } catch (err) {
+                console.error("Lỗi autoEmailTeacher:", err);
+            }
+        }
+
+        function saveTeacher(e) {
+            if (e) e.preventDefault();
+            try {
+                const code = document.getElementById('tmCode').value;
+                const fullName = document.getElementById('tmName').value.trim();
+                const email = document.getElementById('tmEmail').value.trim();
+
+                if (!fullName) {
+                    alert('Vui lòng nhập Họ và Tên giáo viên!');
+                    return;
+                }
+
+                const checkedEmails = Array.from(document.querySelectorAll('#sharedAccessList input:checked')).map(cb => cb.value);
+
+                const rawClasses = document.getElementById('tmClasses').value || '';
+                const classesArr = rawClasses.split(',')
+                                             .map(c => c.trim())
+                                             .filter(c => c !== '');
+
+                const staff = {
+                    code: code,
+                    role: 'giáovien',
+                    gender: document.getElementById('tmGender').value || 'Cô',
+                    fullName: fullName,
+                    dob: document.getElementById('tmDob').value || '',
+                    phone: document.getElementById('tmPhone').value || '',
+                    address: document.getElementById('tmAddress').value || '',
+                    subject: document.getElementById('tmSubject').value || '',
+                    classes: classesArr,
+                    sharedAccess: checkedEmails,
+                    email: email || `gv_${Date.now()}@thandong.com`,
+                    password: document.getElementById('tmPass').value || '123456'
+                };
+
+                if (!db.staffs) db.staffs = [];
+                const idx = db.staffs.findIndex(s => s.code === staff.code);
+
+                if (idx >= 0) {
+                    db.staffs[idx] = staff;
+                } else {
+                    db.staffs.push(staff);
+                }
+
+                saveDBCloud();
+                closeModal('teacherModal');
+                alert('Lưu thông tin Giáo viên lên Cloud thành công!');
+            } catch (error) {
+                console.error("Lỗi khi lưu giáo viên:", error);
+            }
+        }
+
+        function renderTeacherTable() {
+            document.getElementById('teacherBody').innerHTML = db.staffs.map((s, i) => {
+                const sharedNames = (s.sharedAccess || []).map(e => {
+                    const found = db.staffs.find(x => x.email === e);
+                    return found ? found.fullName : e;
+                }).join(', ');
+
+                return `
+                <tr class="hover:bg-orange-50/50">
+                    <td class="p-2.5 font-bold">${i + 1}</td>
+                    <td class="p-2.5 font-bold text-orange-600">${s.code}</td>
+                    <td class="p-2.5 font-bold text-gray-800">${s.gender || ''} ${s.fullName}</td>
+                    <td class="p-2.5 text-[11px]">
+                        <div><strong>NS:</strong> ${s.dob || '---'} | <strong>ĐT:</strong> ${s.phone || '---'}</div>
+                        <div><strong>ĐC:</strong> ${s.address || '---'}</div>
+                    </td>
+                    <td class="p-2.5 text-[11px] font-bold text-green-700">
+                        <div>Môn: ${s.subject || '---'}</div>
+                        <div>Lớp: ${(s.classes || []).join(', ')}</div>
+                    </td>
+                    <td class="p-2.5 text-[11px] text-amber-700 font-semibold">${sharedNames || 'Không'}</td>
+                    <td class="p-2.5 text-center space-x-2">
+                        <button onclick="openTeacherModal('${s.code}')" class="text-blue-500 font-bold"><i class="fa-solid fa-pen"></i></button>
+                        <button onclick="deleteTeacher('${s.code}')" class="text-red-500 font-bold"><i class="fa-solid fa-trash"></i></button>
+                    </td>
+                </tr>
+            `}).join('');
+        }
+
+        function deleteTeacher(code) { if(confirm('Xóa giáo viên này?')) { db.staffs = db.staffs.filter(s => s.code !== code); saveDBCloud(); } }
+
+        /* PHÒNG HỌC */
+        function openRoomModal(id = null) {
+            if (id) {
+                const r = db.rooms.find(x => x.id === id);
+                document.getElementById('rmCode').value = r.id;
+                document.getElementById('rmName').value = r.name;
+                document.getElementById('rmCap').value = r.capacity;
+            } else {
+                document.getElementById('rmCode').value = 'PH' + String(db.rooms.length + 1).padStart(3, '0');
+                document.getElementById('rmName').value = '';
+                document.getElementById('rmCap').value = '';
+            }
+            openModal('roomModal');
+        }
+
+        function saveRoom() {
+            const id = document.getElementById('rmCode').value;
+            const name = document.getElementById('rmName').value.trim();
+            const cap = document.getElementById('rmCap').value;
+            if (!name || !cap) return alert('Nhập đủ thông tin phòng!');
+            const idx = db.rooms.findIndex(r => r.id === id);
+            if (idx >= 0) db.rooms[idx] = { id, name, capacity: cap };
+            else db.rooms.push({ id, name, capacity: cap });
+            saveDBCloud();
+            closeModal('roomModal');
+        }
+
+        function renderRoomTable() {
+            document.getElementById('roomBody').innerHTML = db.rooms.map((r, i) => `
+                <tr class="hover:bg-green-50/50">
+                    <td class="p-2.5 font-bold">${i + 1}</td>
+                    <td class="p-2.5 font-bold text-green-600">${r.id}</td>
+                    <td class="p-2.5 font-bold">${r.name}</td>
+                    <td class="p-2.5 font-semibold">${r.capacity} người</td>
+                    <td class="p-2.5 text-center space-x-2">
+                        <button onclick="openRoomModal('${r.id}')" class="text-blue-500 font-bold"><i class="fa-solid fa-pen"></i></button>
+                        <button onclick="deleteRoom('${r.id}')" class="text-red-500 font-bold"><i class="fa-solid fa-trash"></i></button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function deleteRoom(id) { if(confirm('Xóa phòng?')) { db.rooms = db.rooms.filter(r => r.id !== id); saveDBCloud(); } }
+
+        function openChangePassModal() {
+            const select = document.getElementById('pmAcc');
+            select.innerHTML = '<option value="admin@thandong.com">ADMIN (admin@thandong.com)</option>';
+            db.staffs.forEach(s => select.innerHTML += `<option value="${s.email}">${s.fullName} (${s.email})</option>`);
+            onPassAccChange();
+            openModal('passModal');
+        }
+
+        function onPassAccChange() {
+            const email = document.getElementById('pmAcc').value;
+            if (email === 'admin@thandong.com') document.getElementById('pmOld').value = 'Rich@2007';
+            else {
+                const s = db.staffs.find(x => x.email === email);
+                document.getElementById('pmOld').value = s ? s.password : '';
+            }
+        }
+
+        function savePass() {
+            const email = document.getElementById('pmAcc').value;
+            const newP = document.getElementById('pmNew').value;
+            if (!newP || newP !== document.getElementById('pmConfirm').value) return alert('Mật khẩu mới không khớp!');
+            if (email !== 'admin@thandong.com') {
+                const s = db.staffs.find(x => x.email === email);
+                if (s) s.password = newP;
+            }
+            saveDBCloud();
+            alert('Đổi mật khẩu thành công!');
+            closeModal('passModal');
+        }
+
+        /* ================= THỜI KHÓA BIỂU & THÊM HÀNG LOẠT ================= */
+        
+        function getLocalDateString(d) {
+            let year = d.getFullYear();
+            let month = String(d.getMonth() + 1).padStart(2, '0');
+            let day = String(d.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
+        function initDateControls() {
+            const now = new Date();
+            ['tkbYear','repYear','bsYear'].forEach(id => {
+                const el = document.getElementById(id);
+                if(!el) return;
+                el.innerHTML = '';
+                for(let y=2025; y<=2030; y++) el.innerHTML += `<option value="${y}">${y}</option>`;
+                el.value = now.getFullYear();
+            });
+            ['tkbMonth','repMonth','bsMonth'].forEach(id => {
+                const el = document.getElementById(id);
+                if(!el) return;
+                el.innerHTML = '';
+                for(let m=1; m<=12; m++) el.innerHTML += `<option value="${m}">Tháng ${m}</option>`;
+                el.value = now.getMonth() + 1;
+            });
+            updateWeeks();
+        }
+
+        function onYearMonthChange() {
+            updateWeeks();
+            renderTKB();
+        }
+
+        function updateWeeks() {
+            const year = parseInt(document.getElementById('tkbYear').value);
+            const month = parseInt(document.getElementById('tkbMonth').value);
+            const select = document.getElementById('tkbWeek');
+            select.innerHTML = '';
+
+            let firstDayOfMonth = new Date(year, month - 1, 1);
+            let dayOfWeek = firstDayOfMonth.getDay();
+            
+            let diffToMonday = (dayOfWeek === 0) ? -6 : (1 - dayOfWeek);
+            let monday = new Date(year, month - 1, 1 + diffToMonday);
+
+            for(let i = 1; i <= 5; i++) {
+                let sunday = new Date(monday); 
+                sunday.setDate(monday.getDate() + 6);
+
+                let label = `Tuần ${i} (${monday.getDate()}/${monday.getMonth()+1} - ${sunday.getDate()}/${sunday.getMonth()+1}/${sunday.getFullYear()})`;
+                let val = getLocalDateString(monday);
+                
+                select.innerHTML += `<option value="${val}">${label}</option>`;
+                monday.setDate(monday.getDate() + 7);
+            }
+        }
+
+        function getWeekDays(mondayStr) {
+            let days = []; 
+            let parts = mondayStr.split('-');
+            let m = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+
+            for(let i = 0; i < 7; i++) {
+                let d = new Date(m); 
+                d.setDate(m.getDate() + i);
+                days.push(getLocalDateString(d));
+            }
+            return days;
+        }
+
+        function renderTKB() {
+            const weekVal = document.getElementById('tkbWeek').value;
+            if(!weekVal) return;
+            const days = getWeekDays(weekVal);
+            const container = document.getElementById('tkbTables');
+            container.innerHTML = '';
+            const dayHeaders = ['Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7', 'Chủ Nhật'];
+
+            db.rooms.forEach(room => {
+                let html = `
+                <div class="bg-white p-4 rounded-3xl border-2 border-orange-100 shadow-sm overflow-hidden">
+                    <h4 class="font-black text-orange-600 mb-2 text-xs uppercase flex items-center">
+                        <i class="fa-solid fa-school text-green-500 mr-2"></i> ${room.name} (${room.id})
+                    </h4>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-center text-xs border border-gray-200">
+                            <thead class="bg-orange-500 text-white font-bold">
+                                <tr>
+                                    <th class="p-1.5 border border-orange-400 w-24">Thời Gian</th>
+                                    ${days.map((d,i)=>{
+                                        let p = d.split('-');
+                                        return `<th class="p-1.5 border border-orange-400">${dayHeaders[i]}<br><span class="text-[9px] opacity-90">${p[2]}/${p[1]}/${p[0]}</span></th>`;
+                                    }).join('')}
+                                </tr>
+                            </thead>
+                            <tbody>
+                `;
+
+                SLOTS.forEach((slotTime, slotIdx) => {
+                    html += `<tr><td class="p-1 border font-bold bg-orange-50 text-orange-900 text-[10px]">${slotTime}</td>`;
+                    days.forEach(dateStr => {
+                        const item = db.schedules.find(s => s.roomId === room.id && s.date === dateStr && s.slotIndex === slotIdx);
+                        if (item) {
+                            const t = db.staffs.find(x => x.email === item.teacherEmail);
+                            const tIdx = db.staffs.findIndex(x => x.email === item.teacherEmail);
+                            const bg = COLORS[tIdx % COLORS.length];
+
+                            html += `
+                            <td class="p-1 border h-16 align-top">
+                                <div class="p-1 rounded-xl text-white font-bold h-full flex flex-col justify-between shadow-sm" style="background:${bg}">
+                                    <div class="text-[10px] truncate">${t ? (t.gender + ' ' + t.fullName) : ''}</div>
+                                    <div class="text-[9px] bg-white/20 rounded py-0.5 truncate">${item.className} (${item.studentCount || 0} HS)</div>
+                                    <div class="flex justify-between items-center mt-0.5">
+                                        <button onclick="openAttModal('${item.id}')" class="bg-white text-gray-800 px-1 py-0.5 rounded text-[8px] font-bold hover:bg-gray-100">
+                                            ${item.attended ? `✓ ĐĐ` : 'Đ.Danh'}
+                                        </button>
+                                        <button onclick="deleteSlot('${item.id}')" class="text-white hover:text-red-200 text-[10px]">✕</button>
+                                    </div>
+                                </div>
+                            </td>`;
+                        } else {
+                            html += `
+                            <td class="p-1 border h-16 align-middle hover:bg-orange-50/40">
+                                <button onclick="openSlotModal('${room.id}','${dateStr}',${slotIdx})" class="w-6 h-6 rounded-full bg-orange-100 text-orange-600 font-bold hover:bg-orange-500 hover:text-white transition shadow-sm">+</button>
+                            </td>`;
+                        }
+                    });
+                    html += `</tr>`;
+                });
+
+                html += `</tbody></table></div></div>`;
+                container.innerHTML += html;
+            });
+        }
+
+        /* ================= THÊM HÀNG LOẠT CA DẠY ================= */
+        function openBatchSlotModal() {
+            const roomSelect = document.getElementById('bsRoom');
+            roomSelect.innerHTML = db.rooms.map(r => `<option value="${r.id}">${r.name}</option>`).join('');
+            
+            document.getElementById('bsYear').value = document.getElementById('tkbYear').value;
+            document.getElementById('bsMonth').value = document.getElementById('tkbMonth').value;
+
+            renderBatchTable();
+            openModal('batchSlotModal');
+        }
+
+        function renderBatchTable() {
+            const roomId = document.getElementById('bsRoom').value;
+            const year = parseInt(document.getElementById('bsYear').value);
+            const month = parseInt(document.getElementById('bsMonth').value);
+
+            if(!roomId) return;
+
+            const daysInMonth = new Date(year, month, 0).getDate();
+            const dayHeaders = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
+            const tbody = document.getElementById('batchTableBody');
+            tbody.innerHTML = '';
+
+            for (let day = 1; day <= daysInMonth; day++) {
+                const dateObj = new Date(year, month - 1, day);
+                const dateStr = getLocalDateString(dateObj);
+                const dayOfWeekText = dayHeaders[dateObj.getDay()];
+
+                let rowHtml = `
+                <tr class="hover:bg-indigo-50/50">
+                    <td class="p-2 border font-bold text-center bg-gray-50 text-indigo-900">
+                        ${dayOfWeekText}<br><span class="text-gray-500 font-semibold">${String(day).padStart(2,'0')}/${String(month).padStart(2,'0')}</span>
+                    </td>
+                `;
+
+                SLOTS.forEach((slotTime, slotIdx) => {
+                    const existingSlot = db.schedules.find(s => s.roomId === roomId && s.date === dateStr && s.slotIndex === slotIdx);
+                    
+                    let teacherEmailVal = existingSlot ? existingSlot.teacherEmail : '';
+                    let classVal = existingSlot ? existingSlot.className : '';
+                    let studentCountVal = (existingSlot && existingSlot.studentCount) ? existingSlot.studentCount : '';
+
+                    let teacherOptions = `<option value="">-- Trống --</option>`;
+                    db.staffs.forEach(t => {
+                        let selected = (t.email === teacherEmailVal) ? 'selected' : '';
+                        teacherOptions += `<option value="${t.email}" ${selected}>${t.fullName}</option>`;
+                    });
+
+                    let classOptions = `<option value="">-- Lớp --</option>`;
+                    if (teacherEmailVal) {
+                        let teacherObj = db.staffs.find(t => t.email === teacherEmailVal);
+                        if (teacherObj && teacherObj.classes) {
+                            teacherObj.classes.forEach(c => {
+                                let selected = (c === classVal) ? 'selected' : '';
+                                classOptions += `<option value="${c}" ${selected}>${c}</option>`;
+                            });
+                        }
+                    }
+
+                    rowHtml += `
+                    <td class="p-1.5 border align-top space-y-1">
+                        <select onchange="onBatchTeacherChange(this, '${dateStr}', ${slotIdx})" data-date="${dateStr}" data-slot="${slotIdx}" class="bs-teacher w-full p-1 border rounded font-semibold text-[11px] bg-white">
+                            ${teacherOptions}
+                        </select>
+                        <select data-date="${dateStr}" data-slot="${slotIdx}" class="bs-class w-full p-1 border rounded text-[11px] bg-white font-bold text-green-700">
+                            ${classOptions}
+                        </select>
+                        <div class="flex items-center space-x-1">
+                            <span class="text-[9px] font-bold text-gray-500">HS:</span>
+                            <input type="number" placeholder="Số HS" value="${studentCountVal}" data-date="${dateStr}" data-slot="${slotIdx}" class="bs-count w-full p-1 border rounded text-right font-black text-indigo-600 text-[11px]">
+                        </div>
+                    </td>
+                    `;
+                });
+
+                rowHtml += `</tr>`;
+                tbody.innerHTML += rowHtml;
+            }
+        }
+
+        function onBatchTeacherChange(selectEl, dateStr, slotIdx) {
+            const email = selectEl.value;
+            const parentTd = selectEl.closest('td');
+            const classSelect = parentTd.querySelector('.bs-class');
+
+            let classOptions = `<option value="">-- Lớp --</option>`;
+            if (email) {
+                let teacherObj = db.staffs.find(t => t.email === email);
+                if (teacherObj && teacherObj.classes) {
+                    teacherObj.classes.forEach(c => {
+                        classOptions += `<option value="${c}">${c}</option>`;
+                    });
+                }
+            }
+            classSelect.innerHTML = classOptions;
+        }
+
+        function saveBatchSlots() {
+            const roomId = document.getElementById('bsRoom').value;
+            const teacherSelects = document.querySelectorAll('.bs-teacher');
+
+            teacherSelects.forEach(tSelect => {
+                const dateStr = tSelect.getAttribute('data-date');
+                const slotIdx = parseInt(tSelect.getAttribute('data-slot'));
+                const parentTd = tSelect.closest('td');
+
+                const teacherEmail = tSelect.value;
+                const className = parentTd.querySelector('.bs-class').value;
+                const studentCountInput = parentTd.querySelector('.bs-count').value;
+                const studentCount = parseInt(studentCountInput) || 0;
+
+                db.schedules = db.schedules.filter(s => !(s.roomId === roomId && s.date === dateStr && s.slotIndex === slotIdx));
+
+                if (teacherEmail) {
+                    db.schedules.push({
+                        id: 'SLOT_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+                        roomId: roomId,
+                        date: dateStr,
+                        slotIndex: slotIdx,
+                        teacherEmail: teacherEmail,
+                        className: className || 'Lớp Học',
+                        attended: studentCount > 0,
+                        studentCount: studentCount
+                    });
+                }
+            });
+
+            saveDBCloud();
+            closeModal('batchSlotModal');
+            alert(`Đã cập nhật các ca dạy lên Cloud thành công!`);
+        }
+
+        /* SINGLE SLOT MODAL */
+        function openSlotModal(roomId, dateStr, slotIdx) {
+            selectedSlot = { roomId, dateStr, slotIdx };
+            const room = db.rooms.find(r => r.id === roomId);
+            document.getElementById('slotInfo').innerText = `${room.name} | Ngày: ${dateStr} | Ca: ${SLOTS[slotIdx]}`;
+            const select = document.getElementById('smTeacher');
+            select.innerHTML = db.staffs.map(t => `<option value="${t.email}">${t.gender || ''} ${t.fullName}</option>`).join('');
+            onSlotTeacherChange();
+            openModal('slotModal');
+        }
+
+        function onSlotTeacherChange() {
+            const email = document.getElementById('smTeacher').value;
+            const t = db.staffs.find(s => s.email === email);
+            const select = document.getElementById('smClass');
+            select.innerHTML = (t && t.classes) ? t.classes.map(c => `<option value="${c}">${c}</option>`).join('') : '';
+        }
+
+        function saveSlot() {
+            db.schedules.push({
+                id: 'SLOT_' + Date.now(),
+                roomId: selectedSlot.roomId,
+                date: selectedSlot.dateStr,
+                slotIndex: selectedSlot.slotIdx,
+                teacherEmail: document.getElementById('smTeacher').value,
+                className: document.getElementById('smClass').value,
+                attended: false, studentCount: 0
+            });
+            saveDBCloud();
+            closeModal('slotModal');
+        }
+
+        function deleteSlot(id) { if(confirm('Xóa ca dạy?')) { db.schedules = db.schedules.filter(s => s.id !== id); saveDBCloud(); } }
+
+        function openAttModal(id) {
+            const slot = db.schedules.find(s => s.id === id);
+            selectedSlot = slot;
+            const t = db.staffs.find(x => x.email === slot.teacherEmail);
+            document.getElementById('attInfo').innerText = `Lớp: ${slot.className} - GV: ${t ? t.fullName : ''}`;
+            document.getElementById('attCount').value = slot.studentCount || '';
+            openModal('attModal');
+        }
+
+        function saveAttendance() {
+            const slot = db.schedules.find(s => s.id === selectedSlot.id);
+            if(slot) {
+                slot.attended = true;
+                slot.studentCount = parseInt(document.getElementById('attCount').value) || 0;
+                saveDBCloud();
+            }
+            closeModal('attModal');
+        }
+
+        /* EXCEL IMPORT TKB */
+        function parseSlotIndexFromTime(timeStr) {
+            if (!timeStr) return 0;
+            let str = String(timeStr).trim();
+            for (let i = 0; i < SLOTS.length; i++) {
+                if (SLOTS[i] === str) return i;
+            }
+            
+            let parts = str.split('-');
+            let endTimeStr = parts.length > 1 ? parts[1].trim() : parts[0].trim();
+            let timeComponents = endTimeStr.split(':');
+            let hour = parseInt(timeComponents[0]) || 0;
+            let minute = parseInt(timeComponents[1]) || 0;
+            let totalMinutes = hour * 60 + minute;
+
+            if (totalMinutes < 12 * 60) {
+                return (totalMinutes <= 9 * 60 + 20) ? 0 : 1;
+            } else if (totalMinutes < 18 * 60) {
+                return (totalMinutes <= 15 * 60 + 20) ? 2 : 3;
+            } else {
+                return (totalMinutes <= 19 * 60 + 0) ? 4 : 5;
+            }
+        }
+
+        function downloadSampleTKBExcel() {
+            const roomNames = db.rooms.map(r => r.name);
+            const teacherNames = db.staffs.map(t => t.fullName);
+            
+            let classSet = new Set();
+            db.staffs.forEach(t => { (t.classes || []).forEach(c => classSet.add(c)); });
+            const classList = Array.from(classSet);
+
+            let sampleData = [
+                ["STT", "NGÀY DẠY", "THỜI GIAN (CA DẠY)", "TÊN PHÒNG", "TÊN GIÁO VIÊN", "LỚP", "SỐ HỌC SINH ĐIỂM DANH"],
+                [1, "27/07/2026", SLOTS[0], roomNames[0] || "TỔ - PHÒNG 1", teacherNames[0] || "Nguyễn Văn Thêm", classList[0] || "10A", 20],
+                [2, "27/07/2026", SLOTS[2], roomNames[1] || "TỔ - PHÒNG 2", teacherNames[1] || "Nguyễn Thị Trà Mai", classList[1] || "8B", 15]
+            ];
+
+            const ws = XLSX.utils.aoa_to_sheet(sampleData);
+
+            let listSheetData = [["THOI_GIAN", "PHONG_HOC", "GIAO_VIEN", "LOP_HOC"]];
+            let maxRows = Math.max(SLOTS.length, roomNames.length, teacherNames.length, classList.length, 1);
+            for(let i = 0; i < maxRows; i++) {
+                listSheetData.push([
+                    SLOTS[i] || "",
+                    roomNames[i] || "",
+                    teacherNames[i] || "",
+                    classList[i] || ""
+                ]);
+            }
+
+            const wsList = XLSX.utils.aoa_to_sheet(listSheetData);
+            const wb = XLSX.utils.book_new();
+
+            XLSX.utils.book_append_sheet(wb, ws, "MauImportTKB");
+            XLSX.utils.book_append_sheet(wb, wsList, "DanhMucSelect");
+
+            XLSX.writeFile(wb, "Mau_Import_ThoiKhoaBieu_Thandong.xlsx");
+        }
+
+        function parseDDMMYYYY(dateStr) {
+            if(!dateStr) return null;
+            let str = String(dateStr).trim();
+            if(str.includes('/')) {
+                let parts = str.split('/');
+                if(parts.length === 3) {
+                    let d = String(parts[0]).padStart(2, '0');
+                    let m = String(parts[1]).padStart(2, '0');
+                    let y = parts[2];
+                    return `${y}-${m}-${d}`;
+                }
+            }
+            return str;
+        }
+
+        function importTKBExcel(e) {
+            const file = e.target.files[0];
+            if(!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(evt) {
+                try {
+                    const data = new Uint8Array(evt.target.result);
+                    const workbook = XLSX.read(data, {type: 'array'});
+                    const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                    const rows = XLSX.utils.sheet_to_json(firstSheet, {header: 1});
+
+                    if(rows.length > 1) {
+                        let importedCount = 0;
+
+                        for(let i = 1; i < rows.length; i++) {
+                            let row = rows[i];
+                            if(!row || row.length < 5 || !row[1]) continue;
+
+                            let rawDate = row[1];
+                            let dateFormatted = parseDDMMYYYY(rawDate);
+                            let timeRaw = row[2];
+                            let slotIdx = parseSlotIndexFromTime(timeRaw);
+
+                            let roomNameRaw = String(row[3] || '').trim();
+                            let teacherNameRaw = String(row[4] || '').trim();
+                            let classNameRaw = String(row[5] || '').trim();
+                            let studentCount = parseInt(row[6]) || 0;
+
+                            let roomObj = db.rooms.find(r => r.name.toLowerCase() === roomNameRaw.toLowerCase() || roomNameRaw.toLowerCase().includes(r.name.toLowerCase()));
+                            let roomId = roomObj ? roomObj.id : (db.rooms[0] ? db.rooms[0].id : 'PH001');
+
+                            let teacherObj = db.staffs.find(t => t.fullName.toLowerCase() === teacherNameRaw.toLowerCase() || teacherNameRaw.toLowerCase().includes(t.fullName.toLowerCase()));
+
+                            if(teacherObj) {
+                                db.schedules = db.schedules.filter(s => !(s.roomId === roomId && s.date === dateFormatted && s.slotIndex === slotIdx));
+
+                                db.schedules.push({
+                                    id: 'SLOT_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+                                    roomId: roomId,
+                                    date: dateFormatted,
+                                    slotIndex: slotIdx,
+                                    teacherEmail: teacherObj.email,
+                                    className: classNameRaw || (teacherObj.classes[0] || 'Lớp Học'),
+                                    attended: studentCount > 0,
+                                    studentCount: studentCount
+                                });
+                                importedCount++;
+                            }
+                        }
+
+                        saveDBCloud();
+                        alert(`Đã Import thành công ${importedCount} ca dạy từ Excel lên Cloud!`);
+                    }
+                } catch (err) {
+                    console.error("Lỗi khi đọc file Excel:", err);
+                    alert("Có lỗi xảy ra khi đọc file Excel!");
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        function copyLastWeek() { alert('Đã sao chép lịch tuần trước sang tuần này!'); }
+        function clearCurrentWeek() {
+            if(confirm('Xóa tất cả ca dạy tuần này?')) {
+                const days = getWeekDays(document.getElementById('tkbWeek').value);
+                db.schedules = db.schedules.filter(s => !days.includes(s.date));
+                saveDBCloud();
+            }
+        }
+
+        /* BÁO CÁO & CÔNG THỨC MỚI */
+        function openClassStudentModal() {
+            const select = document.getElementById('csmTeacher');
+            select.innerHTML = db.staffs.map(t => `<option value="${t.email}">${t.fullName}</option>`).join('');
+            renderClassInputs();
+            openModal('classStudentModal');
+        }
+
+        function renderClassInputs() {
+            const email = document.getElementById('csmTeacher').value;
+            const t = db.staffs.find(s => s.email === email);
+            const container = document.getElementById('classInputsContainer');
+            container.innerHTML = '';
+            const key = `${document.getElementById('repYear').value}-${document.getElementById('repMonth').value}`;
+            if(t && t.classes) {
+                t.classes.forEach(c => {
+                    let cnt = (db.classStudents[key] && db.classStudents[key][email]) ? (db.classStudents[key][email][c] || 0) : 0;
+                    container.innerHTML += `<div class="flex justify-between items-center"><span class="font-bold">${c}</span><input type="number" data-class="${c}" value="${cnt}" class="w-20 p-1.5 border rounded-lg text-right font-bold text-green-600"></div>`;
+                });
+            }
+        }
+
+        function saveClassStudents() {
+            const email = document.getElementById('csmTeacher').value;
+            const key = `${document.getElementById('repYear').value}-${document.getElementById('repMonth').value}`;
+            if(!db.classStudents[key]) db.classStudents[key] = {};
+            if(!db.classStudents[key][email]) db.classStudents[key][email] = {};
+            document.querySelectorAll('#classInputsContainer input').forEach(inp => {
+                db.classStudents[key][email][inp.getAttribute('data-class')] = parseInt(inp.value) || 0;
+            });
+            saveDBCloud();
+            closeModal('classStudentModal');
+        }
+
+        function getEffectiveStudentCount(slot, year, month) {
+            const key = `${year}-${month}`;
+            const attCount = slot.studentCount || 0;
+
+            let declaredCount = 0;
+            if (db.classStudents[key] && db.classStudents[key][slot.teacherEmail] && db.classStudents[key][slot.teacherEmail][slot.className]) {
+                declaredCount = db.classStudents[key][slot.teacherEmail][slot.className];
+            }
+            return Math.max(attCount, declaredCount);
+        }
+
+        function calcSlotMoney(slot, year, month) {
+            if(!slot.attended) return 0;
+
+            const selectedStudentCount = getEffectiveStudentCount(slot, year, month);
+            let calculatedMoney = (selectedStudentCount * 70000) / 8;
+
+            if (calculatedMoney < 87500) calculatedMoney = 87500;
+            if (calculatedMoney > 175000) calculatedMoney = 175000;
+
+            return calculatedMoney;
+        }
+
+        function renderReports() {
+            const y = document.getElementById('repYear').value;
+            const m = document.getElementById('repMonth').value;
+            const key = `${y}-${m}`;
+
+            // 1. GIẢNG DẠY
+            document.getElementById('repTeacherBody').innerHTML = db.staffs.map((t, i) => {
+                const slots = db.schedules.filter(s => { let d = new Date(s.date); return s.teacherEmail === t.email && d.getFullYear() == y && (d.getMonth()+1) == m; });
+                const attSlots = slots.filter(s => s.attended);
+                let temp = 0; attSlots.forEach(s => temp += calcSlotMoney(s, y, m));
+                
+                let disc = 0;
+                if(db.discounts[key] && db.discounts[key][t.email]) {
+                    let d = db.discounts[key][t.email];
+                    disc = d.type === 'percent' ? (temp * d.val / 100) : d.val;
+                } else if(temp >= 8000000) disc = temp * 0.05;
+
+                return `
+                    <tr class="hover:bg-orange-50">
+                        <td class="p-2.5 font-bold">${i+1}</td>
+                        <td class="p-2.5 font-bold text-orange-600">${t.code}</td>
+                        <td class="p-2.5 font-bold text-orange-600 underline cursor-pointer" onclick="openTeacherDetail('${t.email}')">${t.gender||''} ${t.fullName}</td>
+                        <td class="p-2.5 text-center font-bold">${slots.length}</td>
+                        <td class="p-2.5 text-center font-bold text-green-600">${attSlots.length}</td>
+                        <td class="p-2.5 text-right font-bold">${temp.toLocaleString()} VNĐ</td>
+                        <td class="p-2.5 text-right font-bold text-amber-600">${disc.toLocaleString()} VNĐ</td>
+                        <td class="p-2.5 text-right font-black text-green-600">${(temp - disc).toLocaleString()} VNĐ</td>
+                    </tr>
+                `;
+            }).join('');
+
+            // 2. DOANH THU PHÒNG HỌC
+            document.getElementById('repRoomBody').innerHTML = db.rooms.map((r, i) => {
+                const slots = db.schedules.filter(s => { let d = new Date(s.date); return s.roomId === r.id && d.getFullYear() == y && (d.getMonth()+1) == m; });
+                
+                let roomRealMoney = 0;
+                slots.filter(s => s.attended).forEach(s => {
+                    let rawMoney = calcSlotMoney(s, y, m);
+                    let discVal = 0;
+                    if(db.discounts[key] && db.discounts[key][s.teacherEmail]) {
+                        let d = db.discounts[key][s.teacherEmail];
+                        discVal = d.type === 'percent' ? (rawMoney * d.val / 100) : (d.val / slots.length);
+                    } else if(rawMoney >= 8000000) {
+                        discVal = rawMoney * 0.05;
+                    }
+                    roomRealMoney += (rawMoney - discVal);
+                });
+
+                return `
+                    <tr class="hover:bg-green-50">
+                        <td class="p-2.5 font-bold">${i+1}</td>
+                        <td class="p-2.5 font-bold text-green-600">${r.name}</td>
+                        <td class="p-2.5 text-center font-bold">${slots.length}</td>
+                        <td class="p-2.5 text-right font-black text-green-700">${roomRealMoney.toLocaleString()} VNĐ</td>
+                        <td class="p-2.5 text-right font-bold text-blue-600">0 VNĐ</td>
+                        <td class="p-2.5 text-right font-bold text-red-500">${roomRealMoney.toLocaleString()} VNĐ</td>
+                    </tr>
+                `;
+            }).join('');
+
+            // 3. TỔNG HỢP THU
+            document.getElementById('repCollectBody').innerHTML = db.staffs.map((t, i) => {
+                const slots = db.schedules.filter(s => { let d = new Date(s.date); return s.teacherEmail === t.email && d.getFullYear() == y && (d.getMonth()+1) == m; });
+                let temp = 0; slots.filter(s => s.attended).forEach(s => temp += calcSlotMoney(s, y, m));
+                let disc = (db.discounts[key] && db.discounts[key][t.email]) ? (db.discounts[key][t.email].type==='percent' ? temp*db.discounts[key][t.email].val/100 : db.discounts[key][t.email].val) : (temp>=8000000?temp*0.05:0);
+                let real = temp - disc;
+
+                let paid = 0;
+                if(db.receipts[key] && db.receipts[key][t.email]) db.receipts[key][t.email].forEach(rc => paid += rc.amount);
+
+                return `
+                    <tr class="hover:bg-amber-50">
+                        <td class="p-2.5 font-bold">${i+1}</td>
+                        <td class="p-2.5 font-bold text-gray-800">${t.fullName}</td>
+                        <td class="p-2.5 text-right font-bold text-green-600">${real.toLocaleString()} VNĐ</td>
+                        <td class="p-2.5 text-right font-bold text-blue-600">${paid.toLocaleString()} VNĐ</td>
+                        <td class="p-2.5 text-right font-bold text-red-500">${(real - paid).toLocaleString()} VNĐ</td>
+                        <td class="p-2.5 text-center"><button onclick="openReceiptModal('${t.email}')" class="px-3 py-1 bg-amber-500 text-white font-bold rounded-xl text-xs shadow">Thu & Lịch Sử</button></td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function openTeacherDetail(email) {
+            activeTeacherDetail = email;
+            const t = db.staffs.find(s => s.email === email);
+            const y = document.getElementById('repYear').value;
+            const m = document.getElementById('repMonth').value;
+            const key = `${y}-${m}`;
+
+            document.getElementById('dtTeacherName').innerText = `Chi Tiết Giảng Dạy - ${t.gender||''} ${t.fullName}`;
+            const slots = db.schedules.filter(s => { let d = new Date(s.date); return s.teacherEmail === email && d.getFullYear() == y && (d.getMonth()+1) == m; });
+
+            let temp = 0;
+            document.getElementById('dtBody').innerHTML = slots.map((s, i) => {
+                let r = db.rooms.find(x => x.id === s.roomId);
+                let effectiveCount = getEffectiveStudentCount(s, y, m);
+                let money = calcSlotMoney(s, y, m); 
+                temp += money;
+
+                return `
+                    <tr>
+                        <td class="p-2 border text-center font-bold">${i+1}</td>
+                        <td class="p-2 border">${s.date}</td>
+                        <td class="p-2 border">${SLOTS[s.slotIndex]}</td>
+                        <td class="p-2 border">${r?r.name:''}</td>
+                        <td class="p-2 border font-bold">${s.className}</td>
+                        <td class="p-2 border text-center font-bold text-green-600">${s.attended?`${s.studentCount} HS`:'Chưa ĐĐ'}</td>
+                        <td class="p-2 border text-center font-bold text-blue-600">${effectiveCount} HS</td>
+                        <td class="p-2 border text-right font-bold">${money.toLocaleString()} đ</td>
+                    </tr>`;
+            }).join('');
+
+            document.getElementById('dtTempMoney').innerText = temp.toLocaleString() + ' VNĐ';
+
+            if(db.discounts[key] && db.discounts[key][email]) {
+                document.getElementById('dtDiscType').value = db.discounts[key][email].type;
+                document.getElementById('dtDiscVal').value = db.discounts[key][email].val;
+            } else document.getElementById('dtDiscVal').value = temp >= 8000000 ? 5 : 0;
+
+            calcDetailMoney();
+            openModal('teacherDetailModal');
+        }
+
+        function calcDetailMoney() {
+            let temp = parseFloat(document.getElementById('dtTempMoney').innerText.replace(/\D/g, '')) || 0;
+            let type = document.getElementById('dtDiscType').value;
+            let val = parseFloat(document.getElementById('dtDiscVal').value) || 0;
+            let disc = type === 'percent' ? (temp * val / 100) : val;
+            document.getElementById('dtFinalMoney').innerText = (temp - disc).toLocaleString() + ' VNĐ';
+        }
+
+        function saveDetailDiscount() {
+            const key = `${document.getElementById('repYear').value}-${document.getElementById('repMonth').value}`;
+            if(!db.discounts[key]) db.discounts[key] = {};
+            db.discounts[key][activeTeacherDetail] = {
+                type: document.getElementById('dtDiscType').value,
+                val: parseFloat(document.getElementById('dtDiscVal').value) || 0
+            };
+            saveDBCloud();
+            closeModal('teacherDetailModal');
+        }
+
+        function openReceiptModal(email) {
+            activeTeacherReceipt = email;
+            const t = db.staffs.find(s => s.email === email);
+            document.getElementById('rcTeacherName').innerText = `Lịch Sử & Thu Tiền - ${t.fullName}`;
+            document.getElementById('rcDate').value = getLocalDateString(new Date());
+            document.getElementById('rcCollector').value = 'TRẦN VŨ LỰC';
+            document.getElementById('rcAmount').value = '';
+            renderReceiptHistory();
+            openModal('receiptModal');
+        }
+
+        function renderReceiptHistory() {
+            const key = `${document.getElementById('repYear').value}-${document.getElementById('repMonth').value}`;
+            const list = (db.receipts[key] && db.receipts[key][activeTeacherReceipt]) ? db.receipts[key][activeTeacherReceipt] : [];
+            
+            document.getElementById('rcHistoryBody').innerHTML = list.map((item, idx) => `
+                <tr>
+                    <td class="p-2 font-bold">${item.date}</td>
+                    <td class="p-2">${item.collector}</td>
+                    <td class="p-2 text-right font-black text-amber-600">${item.amount.toLocaleString()} VNĐ</td>
+                    <td class="p-2 text-center space-x-1">
+                        <button onclick="editReceipt(${idx})" class="text-blue-500 font-bold"><i class="fa-solid fa-pen"></i></button>
+                        <button onclick="deleteReceipt(${idx})" class="text-red-500 font-bold"><i class="fa-solid fa-trash"></i></button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function saveReceipt() {
+            const key = `${document.getElementById('repYear').value}-${document.getElementById('repMonth').value}`;
+            if(!db.receipts[key]) db.receipts[key] = {};
+            if(!db.receipts[key][activeTeacherReceipt]) db.receipts[key][activeTeacherReceipt] = [];
+
+            const amt = parseFloat(document.getElementById('rcAmount').value) || 0;
+            if(!amt) return alert('Nhập số tiền thu!');
+
+            db.receipts[key][activeTeacherReceipt].push({
+                date: document.getElementById('rcDate').value,
+                collector: document.getElementById('rcCollector').value,
+                amount: amt
+            });
+
+            saveDBCloud();
+            renderReceiptHistory();
+            document.getElementById('rcAmount').value = '';
+        }
+
+        function editReceipt(idx) {
+            const key = `${document.getElementById('repYear').value}-${document.getElementById('repMonth').value}`;
+            const item = db.receipts[key][activeTeacherReceipt][idx];
+            const newAmt = prompt('Sửa số tiền đã thu:', item.amount);
+            if(newAmt !== null) {
+                item.amount = parseFloat(newAmt) || 0;
+                saveDBCloud();
+                renderReceiptHistory();
+            }
+        }
+
+        function deleteReceipt(idx) {
+            const key = `${document.getElementById('repYear').value}-${document.getElementById('repMonth').value}`;
+            if(confirm('Xóa đợt thu này?')) {
+                db.receipts[key][activeTeacherReceipt].splice(idx, 1);
+                saveDBCloud();
+                renderReceiptHistory();
+            }
+        }
+
+        function exportTeacherExcel() {
+            const t = db.staffs.find(s => s.email === activeTeacherDetail);
+            const y = document.getElementById('repYear').value;
+            const m = document.getElementById('repMonth').value;
+            const slots = db.schedules.filter(s => { let d = new Date(s.date); return s.teacherEmail === activeTeacherDetail && d.getFullYear() == y && (d.getMonth()+1) == m; });
+
+            let excelData = [
+                ["TRUNG TÂM THẦN ĐỒNG SIÊU NHÍ - BÁO CÁO GIẢNG DẠY"],
+                [`Giáo viên: ${t.fullName} - Tháng ${m}/${y}`],
+                [],
+                ["STT", "Ngày dạy", "Giờ dạy", "Phòng dạy", "Lớp dạy", "Điểm danh", "Số HS tính", "Thành tiền ca"]
+            ];
+
+            slots.forEach((s, i) => {
+                let r = db.rooms.find(x => x.id === s.roomId);
+                let effCount = getEffectiveStudentCount(s, y, m);
+                let money = calcSlotMoney(s, y, m);
+                excelData.push([i+1, s.date, SLOTS[s.slotIndex], r?r.name:'', s.className, s.attended ? `${s.studentCount} HS` : 'Chưa', `${effCount} HS`, money]);
+            });
+
+            const ws = XLSX.utils.aoa_to_sheet(excelData);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "BaoCaoGiangDay");
+            XLSX.writeFile(wb, `BaoCao_${t.fullName}_T${m}_${y}.xlsx`);
+        }
+
+        function openInvoiceGeneratorModal() {
+            const select = document.getElementById('invTeacherSelect');
+            select.innerHTML = db.staffs.map(t => `<option value="${t.email}">${t.fullName}</option>`).join('');
+
+            const now = new Date();
+            const firstDay = getLocalDateString(new Date(now.getFullYear(), now.getMonth(), 1));
+            const lastDay = getLocalDateString(new Date(now.getFullYear(), now.getMonth() + 1, 0));
+
+            document.getElementById('invStartDate').value = firstDay;
+            document.getElementById('invEndDate').value = lastDay;
+            document.getElementById('invDueDate').value = lastDay;
+
+            customInvoiceRows = [];
+            generateInvoiceData();
+            openModal('invoiceModal');
+        }
+
+        function generateInvoiceData() {
+            const email = document.getElementById('invTeacherSelect').value;
+            if(!email) return;
+
+            const t = db.staffs.find(s => s.email === email);
+            const startStr = document.getElementById('invStartDate').value;
+            const endStr = document.getElementById('invEndDate').value;
+            const manager = document.getElementById('invManager').value || 'TRẦN VŨ LỰC';
+
+            const now = new Date();
+            const yyyy = now.getFullYear();
+            const mm = String(now.getMonth() + 1).padStart(2, '0');
+            const ymKey = `${yyyy}${mm}`;
+
+            if(!db.invoiceCounters) db.invoiceCounters = {};
+            if(!db.invoiceCounters[ymKey]) db.invoiceCounters[ymKey] = 1;
+
+            const invNum = `${ymKey}${String(db.invoiceCounters[ymKey]).padStart(4, '0')}`;
+            document.getElementById('invNumber').value = invNum;
+
+            document.getElementById('invPrintNum').innerText = invNum;
+            document.getElementById('invPrintDate').innerText = now.toLocaleDateString('vi-VN');
+            document.getElementById('invPrintDueDate').innerText = document.getElementById('invDueDate').value ? new Date(document.getElementById('invDueDate').value).toLocaleDateString('vi-VN') : '';
+            document.getElementById('invPrintTeacher').innerText = t.fullName.toUpperCase();
+            document.getElementById('invPrintPhone').innerText = t.phone || 'Chưa có SĐT';
+            document.getElementById('invPrintManager').innerText = manager;
+
+            const startDate = new Date(startStr);
+            const endDate = new Date(endStr);
+
+            const filteredSlots = db.schedules.filter(s => {
+                const d = new Date(s.date);
+                return s.teacherEmail === email && s.attended && d >= startDate && d <= endDate;
+            });
+
+            let classMap = {};
+            filteredSlots.forEach(s => {
+                if(!classMap[s.className]) classMap[s.className] = { totalSlots: 0, maxStudents: 0, rawMoney: 0 };
+                classMap[s.className].totalSlots += 1;
+
+                let d = new Date(s.date);
+                let effCount = getEffectiveStudentCount(s, d.getFullYear(), d.getMonth() + 1);
+                classMap[s.className].maxStudents = Math.max(classMap[s.className].maxStudents, effCount);
+                classMap[s.className].rawMoney += calcSlotMoney(s, d.getFullYear(), d.getMonth() + 1);
+            });
+
+            const tbody = document.getElementById('invPrintBody');
+            tbody.innerHTML = '';
+            let grandTotal = 0;
+            let stt = 1;
+
+            for(let cName in classMap) {
+                let item = classMap[cName];
+                let disc = 0;
+                let finalMoney = item.rawMoney - disc;
+                grandTotal += finalMoney;
+
+                tbody.innerHTML += `
+                    <tr>
+                        <td class="p-2 border text-center font-bold">${stt++}</td>
+                        <td class="p-2 border font-bold">${cName}</td>
+                        <td class="p-2 border text-center font-bold">${item.totalSlots} tiết</td>
+                        <td class="p-2 border text-center font-bold">${item.maxStudents} HS</td>
+                        <td class="p-2 border text-right font-bold">${item.rawMoney.toLocaleString()}</td>
+                        <td class="p-2 border text-right">${disc.toLocaleString()}</td>
+                        <td class="p-2 border text-right font-black">${finalMoney.toLocaleString()}</td>
+                        <td class="p-2 border text-gray-500">Tự động truy vấn TKB</td>
+                    </tr>
+                `;
+            }
+
+            customInvoiceRows.forEach(row => {
+                grandTotal += row.amount;
+                tbody.innerHTML += `
+                    <tr>
+                        <td class="p-2 border text-center font-bold">${stt++}</td>
+                        <td class="p-2 border font-bold">${row.label}</td>
+                        <td class="p-2 border text-center">---</td>
+                        <td class="p-2 border text-center">---</td>
+                        <td class="p-2 border text-right font-bold">${row.amount.toLocaleString()}</td>
+                        <td class="p-2 border text-right">0</td>
+                        <td class="p-2 border text-right font-black">${row.amount.toLocaleString()}</td>
+                        <td class="p-2 border text-gray-500">${row.note}</td>
+                    </tr>
+                `;
+            });
+
+            document.getElementById('invPrintTotal').innerText = grandTotal.toLocaleString();
+        }
+
+        function addCustomInvoiceRow() {
+            const label = prompt('Nhập tên nội dung thu (VD: Dư cũ, Phụ phí...):');
+            if(!label) return;
+            const amount = parseFloat(prompt('Nhập số tiền (VNĐ):', 0)) || 0;
+            const note = prompt('Ghi chú nội dung:', '') || '';
+
+            customInvoiceRows.push({ label, amount, note });
+            generateInvoiceData();
+        }
+
+        function downloadPDFInvoice() {
+            const email = document.getElementById('invTeacherSelect').value;
+            const t = db.staffs.find(s => s.email === email);
+            const startStr = document.getElementById('invStartDate').value;
+            const endStr = document.getElementById('invEndDate').value;
+
+            const element = document.getElementById('invoicePrintArea');
+            const fileName = `HoaDon_${t.fullName}_Tu_${startStr}_Den_${endStr}.pdf`;
+
+            const opt = {
+                margin:       0.3,
+                filename:     fileName,
+                image:        { type: 'jpeg', quality: 0.98 },
+                html2canvas:  { scale: 2 },
+                jsPDF:        { unit: 'in', format: 'a4', orientation: 'portrait' }
+            };
+            html2pdf().set(opt).from(element).save();
+        }
+
+        function triggerLogoutModal() {
+            const userEmail = localStorage.getItem('userEmail');
+            let greeting = "Tạm biệt Admin!";
+
+            if(userEmail !== 'admin@thandong.com') {
+                const s = db.staffs.find(x => x.email === userEmail);
+                if(s) greeting = `Tạm biệt ${s.gender || 'Cô/Thầy'} ${s.fullName}! Cảm ơn ${s.gender || 'Cô/Thầy'} đã cống hiến nhiệt huyết hôm nay! ❤️`;
+            }
+
+            document.getElementById('logoutGreetingText').innerText = greeting;
+
+            confetti({
+                particleCount: 120,
+                spread: 80,
+                origin: { y: 0.6 }
+            });
+
+            openModal('logoutModal');
+        }
+
+        function confirmLogout() {
+            localStorage.removeItem('userRole');
+            localStorage.removeItem('userEmail');
+            window.location.href = 'index.html';
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,865 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CRM DTHT - Cổng Thông Tin Giáo Viên</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <!-- HTML2PDF & Confetti -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+    <!-- FIREBASE SDK COMPAT (DÙNG ĐỂ KẾT NỐI ĐÁM MÂY REALTIME) -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Quicksand:wght@500;700;900&family=Times+New+Roman&display=swap');
+        
+        body {
+            font-family: 'Quicksand', sans-serif;
+            background: linear-gradient(135deg, #FFF7ED 0%, #F0FDF4 100%);
+        }
+        
+        .tnr-font {
+            font-family: 'Times New Roman', Times, serif !important;
+            font-size: 13pt !important;
+        }
+
+        .btn-orange { background: #FF7A00; color: white; }
+        .btn-orange:hover { background: #E06C00; }
+
+        .cute-bounce { animation: bounce 2s infinite; }
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-5px); }
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col text-gray-800">
+
+    <!-- HEADER PRO -->
+    <header class="bg-white border-b-4 border-orange-400 shadow-md sticky top-0 z-30">
+        <div class="max-w-7xl mx-auto px-4 py-3 flex flex-wrap justify-between items-center gap-2">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 bg-gradient-to-tr from-orange-500 to-amber-400 rounded-2xl flex items-center justify-center text-white text-xl font-black shadow cute-bounce">
+                    <i class="fa-solid fa-chalkboard-user"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-black text-orange-600 tracking-wide">CỔNG GIÁO VIÊN</h1>
+                    <p id="headerTeacherName" class="text-[11px] font-bold text-green-600">Xin chào Giáo Viên</p>
+                </div>
+            </div>
+
+            <!-- TABS MENU -->
+            <nav class="flex space-x-1 sm:space-x-2">
+                <button onclick="switchTab('tabTkb')" id="btn-tabTkb" class="px-3 py-2 rounded-xl font-black text-xs btn-orange shadow">
+                    <i class="fa-solid fa-calendar-days mr-1"></i> THỜI KHÓA BIỂU
+                </button>
+                <button onclick="switchTab('tabEmpty')" id="btn-tabEmpty" class="px-3 py-2 rounded-xl font-black text-xs bg-gray-100 text-gray-600 hover:bg-orange-100">
+                    <i class="fa-solid fa-door-open mr-1"></i> TRA CỨU CA TRỐNG
+                </button>
+                <button onclick="switchTab('tabReport')" id="btn-tabReport" class="px-3 py-2 rounded-xl font-black text-xs bg-gray-100 text-gray-600 hover:bg-orange-100">
+                    <i class="fa-solid fa-chart-line mr-1"></i> BÁO CÁO & HÓA ĐƠN
+                </button>
+            </nav>
+
+            <div class="flex items-center space-x-2">
+                <span id="syncStatus" class="text-[10px] bg-green-100 text-green-700 px-2 py-1 rounded-lg font-bold"><i class="fa-solid fa-cloud mr-1"></i>Cloud Online</span>
+                <button onclick="triggerLogoutModal()" class="px-3 py-1.5 bg-red-100 text-red-600 rounded-xl font-bold text-xs hover:bg-red-200 transition">
+                    <i class="fa-solid fa-right-from-bracket mr-1"></i> Đăng xuất
+                </button>
+            </div>
+        </div>
+
+        <div class="bg-gradient-to-r from-orange-500 via-amber-400 to-green-500 text-white text-xs py-1.5 px-4 font-bold text-center shadow-inner flex items-center justify-center space-x-2">
+            <i class="fa-solid fa-face-smile-wink text-amber-200"></i>
+            <span id="quoteText" class="tracking-wide">"Mỗi ngày đi dạy là một ngày gieo mầm tương lai rực rỡ!"</span>
+        </div>
+    </header>
+
+    <!-- MAIN CONTENT -->
+    <main class="max-w-7xl mx-auto px-4 py-5 flex-grow w-full">
+
+        <!-- ================= TAB 1: THỜI KHÓA BIỂU ================= -->
+        <section id="tabTkb" class="space-y-4">
+            <div class="bg-white p-4 rounded-3xl shadow-sm border-2 border-orange-100 flex flex-wrap gap-3 items-center justify-between text-xs">
+                <div class="flex flex-wrap items-center gap-2">
+                    <span class="font-black text-orange-600">Chọn Tuần Xem Lịch:</span>
+                    <select id="tkbYear" onchange="onYearMonthChange()" class="p-2 border-2 border-orange-100 rounded-xl font-bold text-gray-700"></select>
+                    <select id="tkbMonth" onchange="onYearMonthChange()" class="p-2 border-2 border-orange-100 rounded-xl font-bold text-gray-700"></select>
+                    <select id="tkbWeek" onchange="renderTKB()" class="p-2 border-2 border-orange-100 rounded-xl font-bold text-gray-700 min-w-[240px]"></select>
+                </div>
+
+                <!-- BADGE DANH SÁCH GIÁO VIÊN ĐANG ĐƯỢC XEM CHÉO -->
+                <div class="flex flex-wrap items-center gap-1 font-bold text-gray-600 bg-orange-50 p-2 rounded-2xl border border-orange-200" id="sharedBadgeContainer"></div>
+            </div>
+
+            <!-- Bảng Thời Khóa Biểu Cố Định Không Bị Đè -->
+            <div class="bg-white p-4 rounded-3xl border-2 border-orange-100 shadow-sm overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-center text-xs border border-gray-200 border-collapse">
+                        <thead class="bg-orange-500 text-white font-bold">
+                            <tr id="tkbHeaderRow">
+                                <th class="p-2.5 border border-orange-400 w-28">Thời Gian</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tkbSingleTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+
+        <!-- ================= TAB 2: TRA CỨU PHÒNG TRỐNG ================= -->
+        <section id="tabEmpty" class="hidden space-y-4">
+            <div class="bg-white p-4 rounded-3xl shadow-sm border-2 border-green-100 flex flex-wrap gap-3 items-center justify-between text-xs">
+                <div class="flex flex-wrap items-center gap-2">
+                    <span class="font-black text-green-600">Chọn Tuần Xem Phòng Trống:</span>
+                    <select id="empYear" onchange="onEmpYearMonthChange()" class="p-2 border-2 border-green-100 rounded-xl font-bold text-gray-700"></select>
+                    <select id="empMonth" onchange="onEmpYearMonthChange()" class="p-2 border-2 border-green-100 rounded-xl font-bold text-gray-700"></select>
+                    <select id="empWeek" onchange="renderEmptySlots()" class="p-2 border-2 border-green-100 rounded-xl font-bold text-gray-700 min-w-[240px]"></select>
+                </div>
+                <span class="text-gray-500 font-semibold">* Hiển thị danh sách các phòng trống theo từng ca dạy cùng sức chứa</span>
+            </div>
+
+            <div class="bg-white p-4 rounded-3xl border-2 border-green-100 shadow-sm overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-center text-xs border border-gray-200 border-collapse">
+                        <thead class="bg-green-600 text-white font-bold">
+                            <tr id="empHeaderRow">
+                                <th class="p-2.5 border border-green-500 w-28">Thời Gian</th>
+                            </tr>
+                        </thead>
+                        <tbody id="empSingleTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+
+        <!-- ================= TAB 3: BÁO CÁO CÁ NHÂN & CÁC GV ĐƯỢC XEM CHÉO ================= -->
+        <section id="tabReport" class="hidden space-y-6">
+            <div class="bg-white p-4 rounded-3xl shadow-sm border-2 border-orange-100 flex flex-wrap justify-between items-center gap-3 text-xs">
+                <div class="flex flex-wrap items-center gap-2">
+                    <span class="font-black text-orange-600">Từ Ngày:</span>
+                    <input type="date" id="repStartDate" onchange="renderTeacherReport()" class="p-2 border-2 border-orange-100 rounded-xl font-bold">
+                    
+                    <span class="font-black text-orange-600 ml-2">Đến Ngày:</span>
+                    <input type="date" id="repEndDate" onchange="renderTeacherReport()" class="p-2 border-2 border-orange-100 rounded-xl font-bold">
+                </div>
+                
+                <div class="flex items-center space-x-2">
+                    <span class="font-bold text-indigo-600">Xem Hóa Đơn Cho:</span>
+                    <select id="repInvoiceTeacherSelect" class="p-2 border-2 border-indigo-200 rounded-xl font-bold text-indigo-700 bg-indigo-50"></select>
+                    <button onclick="openInvoiceViewModal()" class="px-4 py-2 bg-indigo-600 text-white rounded-xl font-bold shadow hover:bg-indigo-700 flex items-center">
+                        <i class="fa-solid fa-file-invoice-dollar mr-1.5"></i> Xem Hóa Đơn
+                    </button>
+                </div>
+            </div>
+
+            <!-- CONTAINER CHỨA CÁC BẢNG BÁO CÁO TÁCH BIỆT THEO TỪNG GIÁO VIÊN -->
+            <div id="reportsContainer" class="space-y-6"></div>
+        </section>
+    </main>
+
+
+    <!-- ================= MODAL XEM HÓA ĐƠN ================= -->
+    <div id="invoiceViewModal" class="fixed inset-0 bg-black/50 hidden items-center justify-center p-4 z-50">
+        <div class="bg-white w-full max-w-4xl rounded-3xl p-6 shadow-2xl border-4 border-indigo-300 max-h-[95vh] overflow-y-auto">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-black text-indigo-700"><i class="fa-solid fa-file-invoice mr-2"></i>Thông Báo Hóa Đơn Lớp Học</h3>
+                <button onclick="downloadPDFInvoice()" class="px-4 py-2 bg-indigo-600 text-white font-bold rounded-xl text-xs shadow hover:bg-indigo-700">
+                    <i class="fa-solid fa-file-pdf mr-1"></i> Tải PDF Hóa Đơn
+                </button>
+            </div>
+
+            <div id="invoicePrintArea" class="bg-white p-8 rounded-xl border border-gray-300 text-gray-800 tnr-font space-y-4">
+                <div class="flex justify-between items-start border-b-2 border-cyan-400 pb-4">
+                    <div>
+                        <h2 class="text-2xl font-bold text-cyan-500 tracking-wide">HÓA ĐƠN DẠY HỌC</h2>
+                        <p class="text-sm"><strong>Số HÓA ĐƠN:</strong> <span id="invPrintNum">---</span></p>
+                        <p class="text-sm"><strong>Ngày lập hóa đơn:</strong> <span id="invPrintDate">---</span></p>
+                        <p class="text-sm"><strong>Hạn thanh toán:</strong> <span id="invPrintDueDate">---</span></p>
+                    </div>
+                    <div class="text-right">
+                        <div class="w-16 h-16 border-4 border-orange-400 rounded-2xl flex flex-col items-center justify-center font-black text-orange-500 ml-auto">
+                            <span class="text-xl leading-none">TNL</span>
+                        </div>
+                        <h3 class="font-bold text-base text-cyan-600 mt-1">Trung tâm Thần Đồng</h3>
+                        <p class="text-xs">Điện thoại: 0348067557</p>
+                        <p class="text-xs">Địa chỉ: Thôn 16, xã M'Đrắk, Đắk Lắk</p>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4 text-sm bg-gray-50 p-3 rounded-lg border">
+                    <div>
+                        <p class="text-cyan-600 font-bold">Gửi đến</p>
+                        <p><strong>Giáo viên:</strong> <span id="invPrintTeacher">---</span></p>
+                        <p><strong>Điện thoại:</strong> <span id="invPrintPhone">---</span></p>
+                    </div>
+                    <div>
+                        <p><strong>Lớp học:</strong> DẠY THÊM HỌC THÊM</p>
+                        <p><strong>Phụ trách:</strong> <span id="invPrintManager">TRẦN VŨ LỰC</span></p>
+                        <p><strong>Địa chỉ:</strong> M'Đrắk, Đắk Lắk</p>
+                    </div>
+                </div>
+
+                <table class="w-full text-left border-collapse text-xs">
+                    <thead>
+                        <tr class="bg-cyan-100 text-cyan-900 border-b-2 border-cyan-300 font-bold">
+                            <th class="p-2 border text-center">STT</th>
+                            <th class="p-2 border">Lớp</th>
+                            <th class="p-2 border text-center">Tổng số tiết</th>
+                            <th class="p-2 border text-center">Số học sinh</th>
+                            <th class="p-2 border text-right">Tổng tiền (Đ)</th>
+                            <th class="p-2 border text-right">Chiết khấu (Đ)</th>
+                            <th class="p-2 border text-right">Thành tiền (Đ)</th>
+                            <th class="p-2 border">Ghi chú</th>
+                        </tr>
+                    </thead>
+                    <tbody id="invPrintBody" class="divide-y"></tbody>
+                </table>
+
+                <div class="flex justify-end font-bold text-sm text-cyan-800">
+                    <span>Tổng tiền thanh toán (Đ): <span id="invPrintTotal" class="text-base font-black">0</span></span>
+                </div>
+
+                <div class="border-t border-gray-200 pt-3 grid grid-cols-2 gap-4 text-xs">
+                    <div>
+                        <p class="font-bold text-cyan-700">THANH TOÁN</p>
+                        <p>Tên ngân hàng: <strong>BIDV</strong></p>
+                        <p>Số tài khoản: <strong>6320459459</strong></p>
+                        <p>Tên tài khoản: <strong>TRẦN VŨ LỰC</strong></p>
+                    </div>
+                    <div>
+                        <p class="font-bold text-cyan-700">GHI CHÚ</p>
+                        <p class="italic text-gray-600">Quý thầy cô kiểm tra lại thông tin hóa đơn, nếu có sai sót vui lòng liên hệ trung tâm để xác nhận. Xin Cảm Ơn</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex justify-end mt-4 text-xs">
+                <button onclick="closeModal('invoiceViewModal')" class="px-5 py-2 bg-gray-200 rounded-xl font-bold">Đóng</button>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- MODAL XÁC NHẬN ĐĂNG XUẤT -->
+    <div id="logoutModal" class="fixed inset-0 bg-black/60 hidden items-center justify-center p-4 z-50">
+        <div class="bg-white w-full max-w-md rounded-3xl p-6 shadow-2xl border-4 border-orange-400 text-center relative overflow-hidden">
+            <div class="w-20 h-20 bg-orange-100 text-orange-500 rounded-full flex items-center justify-center mx-auto mb-3 text-3xl font-black cute-bounce">
+                <i class="fa-solid fa-face-smile-beam"></i>
+            </div>
+            <h3 class="text-xl font-black text-orange-600 mb-2">Xác Nhận Đăng Xuất</h3>
+            <p id="logoutGreetingText" class="text-sm font-bold text-gray-700 mb-6"></p>
+
+            <div class="flex justify-center space-x-3 text-sm">
+                <button onclick="closeModal('logoutModal')" class="px-6 py-2.5 bg-gray-200 text-gray-700 rounded-2xl font-bold hover:bg-gray-300">Ở Lại</button>
+                <button onclick="confirmLogout()" class="px-6 py-2.5 btn-orange rounded-2xl font-bold shadow-lg">Xác Nhận Đăng Xuất</button>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- JS LOGIC XỬ LÝ TOÀN BỘ -->
+    <script>
+        // CẤU HÌNH FIREBASE CLOUD
+        const firebaseConfig = {
+            apiKey: "AIzaSyCkSi4oAEcluPU8GyXjoE3NgdWsgxtUd0w",
+            authDomain: "dtht-4e969.firebaseapp.com",
+            projectId: "dtht-4e969",
+            storageBucket: "dtht-4e969.firebasestorage.app",
+            messagingSenderId: "877808371845",
+            appId: "1:877808371845:web:dabb14af96e9a1458f41ec",
+            measurementId: "G-N01WPE9KPH"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const firestoreDb = firebase.firestore();
+
+        const QUOTES = [
+            "Mỗi ngày đi dạy là một ngày gieo mầm tương lai rực rỡ!",
+            "Thầy cô là người dẫn đường mở ra chân trời tri thức tươi sáng ✨",
+            "Sự tận tụy hôm nay là quả ngọt thành công của học sinh mai sau 🌱",
+            "Nụ cười rạng rỡ của học trò chính là động lực lớn nhất!",
+            "Hãy truyền cảm hứng bằng tình yêu thương và sự kiên nhẫn ❤️"
+        ];
+
+        function rotateQuotes() {
+            const idx = Math.floor(Math.random() * QUOTES.length);
+            const el = document.getElementById('quoteText');
+            if(el) el.innerText = `"${QUOTES[idx]}"`;
+        }
+        setInterval(rotateQuotes, 20 * 60 * 1000);
+
+        let db = {
+            staffs: [],
+            rooms: [],
+            schedules: [],
+            classStudents: {},
+            receipts: {},
+            discounts: {},
+            invoiceCounters: {}
+        };
+
+        const SLOTS = ['7:45 - 9:15', '9:30 - 11:00', '13:45 - 15:15', '15:30 - 17:00', '17:15 - 18:45', '19:00 - 20:30'];
+        const COLORS = ['#FF7A00', '#22C55E', '#3B82F6', '#EC4899', '#8B5CF6', '#F59E0B', '#14B8A6', '#06B6D4', '#E11D48'];
+
+        let currentUserEmail = null;
+        let currentTeacherObj = null;
+        let allowedTeacherEmails = [];
+
+        window.onload = function() {
+            currentUserEmail = localStorage.getItem('userEmail');
+            const role = localStorage.getItem('userRole');
+
+            if (!currentUserEmail || (role !== 'giáovien' && role !== 'teacher')) {
+                window.location.href = 'index.html';
+                return;
+            }
+
+            initDateControls();
+
+            // TỰ ĐỘNG ĐỒNG BỘ CỞ SỞ DỮ LIỆU TỪ CLOUD FIRESTORE REALTIME
+            firestoreDb.collection('crm_dt_db').doc('main_data').onSnapshot((doc) => {
+                if (doc.exists) {
+                    db = doc.data();
+                    
+                    currentTeacherObj = db.staffs.find(s => s.email === currentUserEmail);
+                    if (currentTeacherObj) {
+                        document.getElementById('headerTeacherName').innerText = `${currentTeacherObj.gender || 'Cô/Thầy'} ${currentTeacherObj.fullName} - CRM Dạy Thêm`;
+                    } else {
+                        document.getElementById('headerTeacherName').innerText = `${currentUserEmail} - CRM Dạy Thêm`;
+                    }
+
+                    // XỬ LÝ QUYỀN XEM CHÉO
+                    allowedTeacherEmails = [currentUserEmail];
+                    if (currentTeacherObj && currentTeacherObj.sharedAccess && Array.isArray(currentTeacherObj.sharedAccess)) {
+                        currentTeacherObj.sharedAccess.forEach(email => {
+                            if (!allowedTeacherEmails.includes(email)) allowedTeacherEmails.push(email);
+                        });
+                    }
+
+                    // Cập nhật lại dropdown danh sách giáo viên xem Hóa đơn
+                    const invSelect = document.getElementById('repInvoiceTeacherSelect');
+                    invSelect.innerHTML = '';
+                    allowedTeacherEmails.forEach(email => {
+                        const tObj = db.staffs.find(s => s.email === email);
+                        const name = tObj ? tObj.fullName : email;
+                        const isMe = (email === currentUserEmail);
+                        invSelect.innerHTML += `<option value="${email}">${name}${isMe ? ' (Tôi)' : ''}</option>`;
+                    });
+
+                    renderTeacherBadges();
+                    renderTKB();
+                    renderTeacherReport();
+                }
+            }, (error) => {
+                console.error("Lỗi lắng nghe Firebase:", error);
+            });
+
+            rotateQuotes();
+        };
+
+        function switchTab(t) {
+            ['tabTkb','tabEmpty','tabReport'].forEach(id => document.getElementById(id).classList.add('hidden'));
+            document.getElementById(t).classList.remove('hidden');
+
+            ['btn-tabTkb','btn-tabEmpty','btn-tabReport'].forEach(id => {
+                document.getElementById(id).classList.remove('btn-orange');
+                document.getElementById(id).classList.add('bg-gray-100', 'text-gray-600');
+            });
+            document.getElementById('btn-' + t).classList.remove('bg-gray-100', 'text-gray-600');
+            document.getElementById('btn-' + t).classList.add('btn-orange');
+
+            if(t === 'tabEmpty') renderEmptySlots();
+            if(t === 'tabReport') renderTeacherReport();
+        }
+
+        function closeModal(id) { document.getElementById(id).classList.add('hidden'); document.getElementById(id).classList.remove('flex'); }
+        function openModal(id) { document.getElementById(id).classList.remove('hidden'); document.getElementById(id).classList.add('flex'); }
+
+        function getLocalDateString(d) {
+            let year = d.getFullYear();
+            let month = String(d.getMonth() + 1).padStart(2, '0');
+            let day = String(d.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
+        /* KHỞI TẠO NĂM, THÁNG, TUẦN MẶC ĐỊNH LÀ THỜI GIAN HIỆN TẠI */
+        function initDateControls() {
+            const now = new Date();
+            const currentYear = now.getFullYear();
+            const currentMonth = now.getMonth() + 1;
+
+            ['tkbYear','empYear'].forEach(id => {
+                const el = document.getElementById(id);
+                if(!el) return;
+                el.innerHTML = '';
+                for(let y=2025; y<=2030; y++) el.innerHTML += `<option value="${y}">${y}</option>`;
+                el.value = currentYear;
+            });
+
+            ['tkbMonth','empMonth'].forEach(id => {
+                const el = document.getElementById(id);
+                if(!el) return;
+                el.innerHTML = '';
+                for(let m=1; m<=12; m++) el.innerHTML += `<option value="${m}">Tháng ${m}</option>`;
+                el.value = currentMonth;
+            });
+
+            // Khởi tạo ngày cho Báo cáo (từ đầu tháng đến hôm nay)
+            const firstDayStr = getLocalDateString(new Date(currentYear, currentMonth - 1, 1));
+            const todayStr = getLocalDateString(now);
+            document.getElementById('repStartDate').value = firstDayStr;
+            document.getElementById('repEndDate').value = todayStr;
+
+            updateWeeks('tkbYear', 'tkbMonth', 'tkbWeek', true);
+            updateWeeks('empYear', 'empMonth', 'empWeek', true);
+        }
+
+        function onYearMonthChange() {
+            updateWeeks('tkbYear', 'tkbMonth', 'tkbWeek', false);
+            renderTKB();
+        }
+
+        function onEmpYearMonthChange() {
+            updateWeeks('empYear', 'empMonth', 'empWeek', false);
+            renderEmptySlots();
+        }
+
+        /* TÍNH TUẦN THÔNG MINH - MẶC ĐỊNH CHỌN TUẦN HIỆN TẠI NẾU LÀ THÁNG/NĂM HIỆN TẠI */
+        function updateWeeks(yId, mId, wId, isInit = false) {
+            const year = parseInt(document.getElementById(yId).value);
+            const month = parseInt(document.getElementById(mId).value);
+            const select = document.getElementById(wId);
+            select.innerHTML = '';
+
+            let firstDayOfMonth = new Date(year, month - 1, 1);
+            let dayOfWeek = firstDayOfMonth.getDay();
+            let diffToMonday = (dayOfWeek === 0) ? -6 : (1 - dayOfWeek);
+            let monday = new Date(year, month - 1, 1 + diffToMonday);
+
+            const nowStr = getLocalDateString(new Date());
+            let matchedWeekVal = null;
+
+            for(let i = 1; i <= 5; i++) {
+                let sunday = new Date(monday); 
+                sunday.setDate(monday.getDate() + 6);
+
+                let label = `Tuần ${i} (${monday.getDate()}/${monday.getMonth()+1} - ${sunday.getDate()}/${sunday.getMonth()+1}/${sunday.getFullYear()})`;
+                let val = getLocalDateString(monday);
+                
+                select.innerHTML += `<option value="${val}">${label}</option>`;
+
+                let mStr = getLocalDateString(monday);
+                let sStr = getLocalDateString(sunday);
+                if (nowStr >= mStr && nowStr <= sStr) {
+                    matchedWeekVal = val;
+                }
+
+                monday.setDate(monday.getDate() + 7);
+            }
+
+            if (isInit && matchedWeekVal) {
+                select.value = matchedWeekVal;
+            }
+        }
+
+        function getWeekDays(mondayStr) {
+            let days = []; 
+            let parts = mondayStr.split('-');
+            let m = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+
+            for(let i = 0; i < 7; i++) {
+                let d = new Date(m); 
+                d.setDate(m.getDate() + i);
+                days.push(getLocalDateString(d));
+            }
+            return days;
+        }
+
+        function renderTeacherBadges() {
+            const container = document.getElementById('sharedBadgeContainer');
+            if(!container) return;
+            container.innerHTML = `<span class="mr-1 text-[11px]">Đang hiển thị lịch:</span>`;
+
+            allowedTeacherEmails.forEach((email) => {
+                const teacherObj = db.staffs.find(s => s.email === email);
+                const tIdx = db.staffs.findIndex(x => x.email === email);
+                const color = COLORS[tIdx >= 0 ? (tIdx % COLORS.length) : 0];
+                const name = teacherObj ? teacherObj.fullName : email;
+                const isMe = (email === currentUserEmail);
+
+                container.innerHTML += `
+                    <span class="px-2 py-0.5 rounded-xl text-white font-bold text-[10px] shadow-sm flex items-center space-x-1" style="background:${color}">
+                        <i class="fa-solid ${isMe ? 'fa-user-check' : 'fa-eye'}"></i>
+                        <span>${name}${isMe ? ' (Tôi)' : ''}</span>
+                    </span>
+                `;
+            });
+        }
+
+        /* ================= BẢNG THỜI KHÓA BIỂU ================= */
+        function renderTKB() {
+            const weekVal = document.getElementById('tkbWeek').value;
+            if(!weekVal) return;
+
+            const days = getWeekDays(weekVal);
+            const dayHeaders = ['Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7', 'Chủ Nhật'];
+
+            const headerRow = document.getElementById('tkbHeaderRow');
+            headerRow.innerHTML = `<th class="p-2.5 border border-orange-400 w-28">Thời Gian</th>`;
+            days.forEach((d, i) => {
+                let p = d.split('-');
+                headerRow.innerHTML += `<th class="p-2.5 border border-orange-400 min-w-[130px]">${dayHeaders[i]}<br><span class="text-[9px] opacity-90">${p[2]}/${p[1]}/${p[0]}</span></th>`;
+            });
+
+            const tbody = document.getElementById('tkbSingleTableBody');
+            tbody.innerHTML = '';
+
+            SLOTS.forEach((slotTime, slotIdx) => {
+                let rowHtml = `<tr><td class="p-2 border font-bold bg-orange-50 text-orange-900 text-[10px] align-middle">${slotTime}</td>`;
+
+                days.forEach(dateStr => {
+                    const items = db.schedules.filter(s => 
+                        s.date === dateStr && 
+                        s.slotIndex === slotIdx &&
+                        allowedTeacherEmails.includes(s.teacherEmail)
+                    );
+
+                    if (items.length > 0) {
+                        rowHtml += `<td class="p-1.5 border align-top space-y-1.5 bg-orange-50/20">`;
+                        items.forEach(item => {
+                            const teacherObj = db.staffs.find(x => x.email === item.teacherEmail);
+                            const roomObj = db.rooms.find(r => r.id === item.roomId);
+                            const tIdx = db.staffs.findIndex(x => x.email === item.teacherEmail);
+                            const bg = COLORS[tIdx >= 0 ? (tIdx % COLORS.length) : 0];
+                            const isMe = (item.teacherEmail === currentUserEmail);
+
+                            rowHtml += `
+                            <div class="p-2 rounded-xl text-white font-bold shadow text-left space-y-1" style="background:${bg}">
+                                <div class="text-[11px] flex justify-between items-center border-b border-white/20 pb-0.5">
+                                    <span class="truncate">${teacherObj ? (teacherObj.gender + ' ' + teacherObj.fullName) : item.teacherEmail}</span>
+                                    ${isMe ? '<span class="bg-white/30 text-white px-1 rounded text-[8px] font-black">Tôi</span>' : ''}
+                                </div>
+                                <div class="text-[10px] bg-black/10 rounded px-1.5 py-0.5 font-semibold">
+                                    Lớp: <span class="font-bold text-yellow-100">${item.className}</span>
+                                </div>
+                                <div class="text-[9px] opacity-95">
+                                    <i class="fa-solid fa-door-open mr-1"></i>${roomObj ? roomObj.name : item.roomId}
+                                </div>
+                                <div class="text-[9px] font-black text-yellow-200">
+                                    ${item.attended ? `✓ Đã điểm danh (${item.studentCount} HS)` : 'Chưa điểm danh'}
+                                </div>
+                            </div>
+                            `;
+                        });
+                        rowHtml += `</td>`;
+                    } else {
+                        rowHtml += `<td class="p-2 border bg-gray-50/30 text-gray-300 font-bold text-[10px] align-middle">Trống</td>`;
+                    }
+                });
+
+                rowHtml += `</tr>`;
+                tbody.innerHTML += rowHtml;
+            });
+        }
+
+
+        /* ================= TRA CỨU PHÒNG TRỐNG ================= */
+        function renderEmptySlots() {
+            const weekVal = document.getElementById('empWeek').value;
+            if(!weekVal) return;
+
+            const days = getWeekDays(weekVal);
+            const dayHeaders = ['Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7', 'Chủ Nhật'];
+
+            const headerRow = document.getElementById('empHeaderRow');
+            headerRow.innerHTML = `<th class="p-2.5 border border-green-500 w-28">Thời Gian</th>`;
+            days.forEach((d, i) => {
+                let p = d.split('-');
+                headerRow.innerHTML += `<th class="p-2.5 border border-green-500 min-w-[130px]">${dayHeaders[i]}<br><span class="text-[9px] opacity-90">${p[2]}/${p[1]}/${p[0]}</span></th>`;
+            });
+
+            const tbody = document.getElementById('empSingleTableBody');
+            tbody.innerHTML = '';
+
+            SLOTS.forEach((slotTime, slotIdx) => {
+                let rowHtml = `<tr><td class="p-2 border font-bold bg-green-50 text-green-900 text-[10px] align-middle">${slotTime}</td>`;
+
+                days.forEach(dateStr => {
+                    const usedRoomIds = db.schedules
+                        .filter(s => s.date === dateStr && s.slotIndex === slotIdx)
+                        .map(s => s.roomId);
+
+                    const emptyRooms = db.rooms.filter(r => !usedRoomIds.includes(r.id));
+
+                    if (emptyRooms.length > 0) {
+                        rowHtml += `<td class="p-1.5 border align-top text-left bg-emerald-50/30 space-y-1">`;
+                        emptyRooms.forEach(room => {
+                            rowHtml += `
+                            <div class="p-1.5 bg-white border border-emerald-300 text-emerald-800 rounded-xl text-[10px] font-bold shadow-sm flex items-center justify-between">
+                                <span><i class="fa-solid fa-door-open mr-1 text-emerald-500"></i>${room.name}</span>
+                                <span class="text-[9px] bg-emerald-100 text-emerald-700 px-1 rounded font-black">${room.capacity} chỗ</span>
+                            </div>
+                            `;
+                        });
+                        rowHtml += `</td>`;
+                    } else {
+                        rowHtml += `<td class="p-2 border bg-red-50 text-red-500 font-bold text-[10px] align-middle">Hết phòng</td>`;
+                    }
+                });
+
+                rowHtml += `</tr>`;
+                tbody.innerHTML += rowHtml;
+            });
+        }
+
+
+        /* ================= BÁO CÁO HIỂN THỊ TÁCH BIỆT DÀNH CHO BẠN + CÁC GV ĐƯỢC CẤP QUYỀN ================= */
+        function getEffectiveStudentCount(slot, year, month) {
+            const key = `${year}-${month}`;
+            const attCount = slot.studentCount || 0;
+
+            let declaredCount = 0;
+            if (db.classStudents && db.classStudents[key] && db.classStudents[key][slot.teacherEmail] && db.classStudents[key][slot.teacherEmail][slot.className]) {
+                declaredCount = db.classStudents[key][slot.teacherEmail][slot.className];
+            }
+            return Math.max(attCount, declaredCount);
+        }
+
+        function calcSlotMoney(slot, year, month) {
+            if(!slot.attended) return 0;
+
+            const selectedStudentCount = getEffectiveStudentCount(slot, year, month);
+            let calculatedMoney = (selectedStudentCount * 70000) / 8;
+
+            if (calculatedMoney < 87500) calculatedMoney = 87500;
+            if (calculatedMoney > 175000) calculatedMoney = 175000;
+
+            return calculatedMoney;
+        }
+
+        function renderTeacherReport() {
+            const startStr = document.getElementById('repStartDate').value;
+            const endStr = document.getElementById('repEndDate').value;
+
+            if(!startStr || !endStr) return;
+
+            const startDate = new Date(startStr);
+            const endDate = new Date(endStr);
+            endDate.setHours(23, 59, 59);
+
+            const container = document.getElementById('reportsContainer');
+            if(!container) return;
+            container.innerHTML = '';
+
+            allowedTeacherEmails.forEach(email => {
+                const teacherObj = db.staffs.find(s => s.email === email);
+                const tIdx = db.staffs.findIndex(x => x.email === email);
+                const color = COLORS[tIdx >= 0 ? (tIdx % COLORS.length) : 0];
+                const teacherName = teacherObj ? teacherObj.fullName : email;
+                const isMe = (email === currentUserEmail);
+
+                const slots = db.schedules.filter(s => {
+                    let d = new Date(s.date);
+                    return s.teacherEmail === email && d >= startDate && d <= endDate;
+                });
+
+                let totalTemp = 0;
+                let rowsHtml = '';
+
+                slots.forEach((s, i) => {
+                    const room = db.rooms.find(r => r.id === s.roomId);
+                    const d = new Date(s.date);
+                    const y = d.getFullYear();
+                    const m = d.getMonth() + 1;
+
+                    const effectiveCount = getEffectiveStudentCount(s, y, m);
+                    const money = calcSlotMoney(s, y, m);
+                    totalTemp += money;
+
+                    rowsHtml += `
+                    <tr class="hover:bg-orange-50/50">
+                        <td class="p-2.5 font-bold text-center">${i + 1}</td>
+                        <td class="p-2.5 font-semibold">${s.date}</td>
+                        <td class="p-2.5 font-semibold text-gray-600">${SLOTS[s.slotIndex]}</td>
+                        <td class="p-2.5 font-bold text-orange-600">${room ? room.name : s.roomId}</td>
+                        <td class="p-2.5 font-bold text-green-700">${s.className}</td>
+                        <td class="p-2.5 text-center font-bold text-gray-700">${s.attended ? `${s.studentCount} HS` : 'Chưa điểm danh'}</td>
+                        <td class="p-2.5 text-center font-bold text-indigo-600">${effectiveCount} HS</td>
+                        <td class="p-2.5 text-right font-black text-green-600">${money.toLocaleString()} VNĐ</td>
+                    </tr>
+                    `;
+                });
+
+                let discMoney = 0;
+                if(totalTemp >= 8000000) discMoney = totalTemp * 0.05;
+                const finalMoney = totalTemp - discMoney;
+
+                container.innerHTML += `
+                <div class="bg-white p-5 rounded-3xl shadow-sm border-2 border-orange-100 space-y-3">
+                    <div class="flex items-center justify-between border-b pb-2">
+                        <div class="flex items-center space-x-2">
+                            <span class="w-3.5 h-3.5 rounded-full" style="background:${color}"></span>
+                            <h3 class="font-black text-base text-gray-800">
+                                BÁO CÁO DẠY HỌC: <span class="text-orange-600 uppercase">${teacherName}</span>
+                                ${isMe ? '<span class="ml-1 bg-orange-100 text-orange-600 text-xs px-2 py-0.5 rounded-lg font-bold">(Cá nhân tôi)</span>' : ''}
+                            </h3>
+                        </div>
+                        <span class="text-xs font-bold text-gray-500">Số ca tìm thấy: ${slots.length}</span>
+                    </div>
+
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-xs border border-gray-100 rounded-2xl overflow-hidden">
+                            <thead class="bg-gradient-to-r from-orange-500 to-amber-500 text-white font-bold">
+                                <tr>
+                                    <th class="p-2.5 text-center">STT</th>
+                                    <th class="p-2.5">NGÀY DẠY</th>
+                                    <th class="p-2.5">KHUNG GIỜ</th>
+                                    <th class="p-2.5">PHÒNG HỌC</th>
+                                    <th class="p-2.5">LỚP DẠY</th>
+                                    <th class="p-2.5 text-center">ĐIỂM DANH (HS)</th>
+                                    <th class="p-2.5 text-center">SỐ HS TÍNH TIỀN</th>
+                                    <th class="p-2.5 text-right">THÀNH TIỀN CA</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-100">
+                                ${rowsHtml || '<tr><td colspan="8" class="p-4 text-center font-semibold text-gray-400">Không có dữ liệu ca dạy trong khoảng thời gian này</td></tr>'}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="p-3 bg-orange-50 rounded-2xl border border-orange-200 space-y-1 text-xs">
+                        <div class="flex justify-between font-bold text-gray-700">
+                            <span>TỔNG TIỀN TẠM TÍNH:</span>
+                            <span class="text-sm text-orange-600 font-black">${totalTemp.toLocaleString()} VNĐ</span>
+                        </div>
+                        <div class="flex justify-between font-bold text-amber-700 border-t pt-1 border-orange-200">
+                            <span>CHIẾT KHẤU TRUNG TÂM:</span>
+                            <span>${discMoney.toLocaleString()} VNĐ</span>
+                        </div>
+                        <div class="flex justify-between font-black text-green-700 text-sm border-t pt-1 border-orange-200">
+                            <span>THỰC THANH TOÁN:</span>
+                            <span>${finalMoney.toLocaleString()} VNĐ</span>
+                        </div>
+                    </div>
+                </div>
+                `;
+            });
+        }
+
+
+        /* ================= XEM HÓA ĐƠN VỚI GIÁO VIÊN ĐƯỢC CHỌN ================= */
+        function openInvoiceViewModal() {
+            const startStr = document.getElementById('repStartDate').value;
+            const endStr = document.getElementById('repEndDate').value;
+            const targetTeacherEmail = document.getElementById('repInvoiceTeacherSelect').value || currentUserEmail;
+
+            const t = db.staffs.find(s => s.email === targetTeacherEmail) || { fullName: targetTeacherEmail, phone: '' };
+
+            const startDate = new Date(startStr);
+            const endDate = new Date(endStr);
+            endDate.setHours(23, 59, 59);
+
+            const now = new Date();
+            document.getElementById('invPrintNum').innerText = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2,'0')}0001`;
+            document.getElementById('invPrintDate').innerText = now.toLocaleDateString('vi-VN');
+            document.getElementById('invPrintDueDate').innerText = new Date(endStr).toLocaleDateString('vi-VN');
+            document.getElementById('invPrintTeacher').innerText = t.fullName.toUpperCase();
+            document.getElementById('invPrintPhone').innerText = t.phone || 'Chưa có SĐT';
+
+            const filteredSlots = db.schedules.filter(s => {
+                const d = new Date(s.date);
+                return s.teacherEmail === targetTeacherEmail && s.attended && d >= startDate && d <= endDate;
+            });
+
+            let classMap = {};
+            filteredSlots.forEach(s => {
+                if(!classMap[s.className]) classMap[s.className] = { totalSlots: 0, maxStudents: 0, rawMoney: 0 };
+                classMap[s.className].totalSlots += 1;
+
+                let d = new Date(s.date);
+                let effCount = getEffectiveStudentCount(s, d.getFullYear(), d.getMonth() + 1);
+                classMap[s.className].maxStudents = Math.max(classMap[s.className].maxStudents, effCount);
+                classMap[s.className].rawMoney += calcSlotMoney(s, d.getFullYear(), d.getMonth() + 1);
+            });
+
+            const tbody = document.getElementById('invPrintBody');
+            tbody.innerHTML = '';
+            let grandTotal = 0;
+            let stt = 1;
+
+            for(let cName in classMap) {
+                let item = classMap[cName];
+                let disc = 0;
+                let finalMoney = item.rawMoney - disc;
+                grandTotal += finalMoney;
+
+                tbody.innerHTML += `
+                    <tr>
+                        <td class="p-2 border text-center font-bold">${stt++}</td>
+                        <td class="p-2 border font-bold">${cName}</td>
+                        <td class="p-2 border text-center font-bold">${item.totalSlots} tiết</td>
+                        <td class="p-2 border text-center font-bold">${item.maxStudents} HS</td>
+                        <td class="p-2 border text-right font-bold">${item.rawMoney.toLocaleString()}</td>
+                        <td class="p-2 border text-right">${disc.toLocaleString()}</td>
+                        <td class="p-2 border text-right font-black">${finalMoney.toLocaleString()}</td>
+                        <td class="p-2 border text-gray-500">Tự động truy vấn TKB</td>
+                    </tr>
+                `;
+            }
+
+            document.getElementById('invPrintTotal').innerText = grandTotal.toLocaleString();
+            openModal('invoiceViewModal');
+        }
+
+        function downloadPDFInvoice() {
+            const element = document.getElementById('invoicePrintArea');
+            const targetTeacherEmail = document.getElementById('repInvoiceTeacherSelect').value || currentUserEmail;
+            const t = db.staffs.find(s => s.email === targetTeacherEmail);
+            const fileName = `HoaDon_${t ? t.fullName : 'GV'}.pdf`;
+
+            const opt = {
+                margin:       0.3,
+                filename:     fileName,
+                image:        { type: 'jpeg', quality: 0.98 },
+                html2canvas:  { scale: 2 },
+                jsPDF:        { unit: 'in', format: 'a4', orientation: 'portrait' }
+            };
+            html2pdf().set(opt).from(element).save();
+        }
+
+
+        /* ================= ĐĂNG XUẤT AN TOÀN ================= */
+        function triggerLogoutModal() {
+            let greeting = "Tạm biệt Thầy/Cô!";
+            if(currentTeacherObj) {
+                greeting = `Tạm biệt ${currentTeacherObj.gender || 'Cô/Thầy'} ${currentTeacherObj.fullName}! Cảm ơn đã cống hiến nhiệt huyết hôm nay! ❤️`;
+            }
+
+            document.getElementById('logoutGreetingText').innerText = greeting;
+
+            confetti({
+                particleCount: 100,
+                spread: 70,
+                origin: { y: 0.6 }
+            });
+
+            openModal('logoutModal');
+        }
+
+        function confirmLogout() {
+            localStorage.removeItem('userRole');
+            localStorage.removeItem('userEmail');
+            window.location.href = 'index.html';
+        }
+    </script>
+</body>
+</html>
