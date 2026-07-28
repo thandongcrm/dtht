@@ -1560,14 +1560,61 @@
             reader.readAsArrayBuffer(file);
         }
 
-        function copyLastWeek() { alert('Đã sao chép lịch tuần trước sang tuần này!'); }
-        function clearCurrentWeek() {
-            if(confirm('Xóa tất cả ca dạy tuần này?')) {
-                const days = getWeekDays(document.getElementById('tkbWeek').value);
-                db.schedules = db.schedules.filter(s => !days.includes(s.date));
-                saveDBCloud();
-            }
-        }
+       function copyLastWeek() {
+    const weekSelect = document.getElementById('tkbWeek');
+    if (!weekSelect || !weekSelect.value) {
+        alert('Vui lòng chọn tuần hiện tại cần dán lịch!');
+        return;
+    }
+
+    const currentDays = getWeekDays(weekSelect.value);
+    
+    // Lấy ngày đầu tiên của tuần hiện tại và lùi lại 7 ngày để tìm tuần trước
+    const firstDayCurrent = new Date(currentDays[0]);
+    const firstDayLast = new Date(firstDayCurrent);
+    firstDayLast.setDate(firstDayCurrent.getDate() - 7);
+    
+    const lastWeekVal = firstDayLast.toISOString().split('T')[0];
+    const lastDays = getWeekDays(lastWeekVal);
+
+    // Tìm các ca dạy tuần trước
+    const lastWeekSchedules = db.schedules.filter(s => lastDays.includes(s.date));
+
+    if (lastWeekSchedules.length === 0) {
+        alert('Không tìm thấy dữ liệu ca dạy của tuần trước!');
+        return;
+    }
+
+    if (confirm(`Tìm thấy ${lastWeekSchedules.length} ca dạy tuần trước. Bạn có muốn sao chép sang tuần này?`)) {
+        // Xóa lịch cũ của tuần hiện tại trước khi dán
+        db.schedules = db.schedules.filter(s => !currentDays.includes(s.date));
+
+        // Copy và gán lại ngày tương ứng cho tuần này
+        const newSchedules = lastWeekSchedules.map(schedule => {
+            const dayIndex = lastDays.indexOf(schedule.date);
+            return {
+                ...schedule,
+                id: Date.now() + Math.random(),
+                date: currentDays[dayIndex]
+            };
+        });
+
+        db.schedules.push(...newSchedules);
+        saveDBCloud();
+        alert('Đã sao chép lịch tuần trước sang tuần này thành công!');
+    }
+}
+
+function clearCurrentWeek() {
+    const weekSelect = document.getElementById('tkbWeek');
+    if (!weekSelect || !weekSelect.value) return;
+
+    if (confirm('Xóa tất cả ca dạy tuần này?')) {
+        const days = getWeekDays(weekSelect.value);
+        db.schedules = db.schedules.filter(s => !days.includes(s.date));
+        saveDBCloud();
+    }
+}
 
         /* BÁO CÁO & CÔNG THỨC MỚI */
         function openClassStudentModal() {
