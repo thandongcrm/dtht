@@ -58,7 +58,6 @@
     </div>
 
     <script>
-        // CẤU HÌNH FIREBASE SDK CHÍNH THỨC DÙNG CHO TRÌNH DUYỆT (COMPAT)
         const firebaseConfig = {
             apiKey: "AIzaSyCkSi4oAEcluPU8GyXjoE3NgdWsgxtUd0w",
             authDomain: "dtht-4e969.firebaseapp.com",
@@ -81,7 +80,16 @@
             btn.disabled = true;
             btn.innerHTML = '<span><i class="fa-solid fa-spinner fa-spin mr-2"></i>Đang kiểm tra...</span>';
 
-            // 1. Kiểm tra Admin
+            // 1. Kiểm tra tài khoản điểm danh nhanh (nếu nhập đúng mail/pass điểm danh thì nhảy qua diemdanh.html)
+            if (email === 'diemdanh@thandong.com' && pass === '123456') {
+                localStorage.setItem('userRole', 'giáovien');
+                localStorage.setItem('userEmail', email);
+                localStorage.setItem('userName', 'Giáo Viên Điểm Danh');
+                window.location.href = 'diemdanh.html';
+                return;
+            }
+
+            // 2. Kiểm tra Admin
             if (email === 'admin@thandong.com' && pass === 'Rich@2007') {
                 localStorage.setItem('userRole', 'admin');
                 localStorage.setItem('userEmail', email);
@@ -89,7 +97,7 @@
                 return;
             }
 
-            // 2. Lấy dữ liệu danh sách Giáo viên từ Cloud Firestore
+            // 3. Lấy dữ liệu danh sách Giáo viên từ Cloud Firestore
             try {
                 const docSnap = await firestoreDb.collection('crm_dt_db').doc('main_data').get();
                 let staffList = [];
@@ -98,7 +106,6 @@
                     staffList = docSnap.data().staffs || [];
                 }
 
-                // Tìm tài khoản giáo viên/nhân viên
                 const found = staffList.find(s => s.email === email && s.password === pass);
 
                 if (found) {
@@ -106,10 +113,9 @@
                     localStorage.setItem('userEmail', found.email);
                     localStorage.setItem('userName', found.fullName);
                     
-                    // Chuyển hướng sang teacher.html
                     window.location.href = 'teacher.html';
                 } else {
-                    alert('Tài khoản hoặc mật khẩu không đúng! Hãy kiểm tra lại email hoặc mật khẩu do Admin cấp.');
+                    alert('Tài khoản hoặc mật khẩu không đúng! Hãy kiểm tra lại thông tin đăng nhập.');
                     btn.disabled = false;
                     btn.innerHTML = '<span><i class="fa-solid fa-right-to-bracket mr-2"></i>Đăng Nhập</span>';
                 }
