@@ -1560,7 +1560,7 @@
             reader.readAsArrayBuffer(file);
         }
 
-       function copyLastWeek() {
+      function copyLastWeek() {
     const weekSelect = document.getElementById('tkbWeek');
     if (!weekSelect || !weekSelect.value) {
         alert('Vui lòng chọn tuần hiện tại cần dán lịch!');
@@ -1574,7 +1574,7 @@
     const firstDayLast = new Date(firstDayCurrent);
     firstDayLast.setDate(firstDayCurrent.getDate() - 7);
     
-    const lastWeekVal = firstDayLast.toISOString().split('T')[0];
+    const lastWeekVal = getLocalDateString(firstDayLast);
     const lastDays = getWeekDays(lastWeekVal);
 
     // Tìm các ca dạy tuần trước
@@ -1589,13 +1589,15 @@
         // Xóa lịch cũ của tuần hiện tại trước khi dán
         db.schedules = db.schedules.filter(s => !currentDays.includes(s.date));
 
-        // Copy và gán lại ngày tương ứng cho tuần này
+        // Copy, tạo ID chuẩn cú pháp (SLOT_...) và gán lại ngày tương ứng cho tuần này
         const newSchedules = lastWeekSchedules.map(schedule => {
             const dayIndex = lastDays.indexOf(schedule.date);
             return {
                 ...schedule,
-                id: Date.now() + Math.random(),
-                date: currentDays[dayIndex]
+                id: 'SLOT_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4), // Đảm bảo ID đồng bộ để điểm danh
+                date: currentDays[dayIndex],
+                attended: false, // Reset trạng thái điểm danh cho tuần mới nếu cần hoặc giữ nguyên
+                studentCount: 0
             };
         });
 
@@ -1604,7 +1606,6 @@
         alert('Đã sao chép lịch tuần trước sang tuần này thành công!');
     }
 }
-
 function clearCurrentWeek() {
     const weekSelect = document.getElementById('tkbWeek');
     if (!weekSelect || !weekSelect.value) return;
