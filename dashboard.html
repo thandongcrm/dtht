@@ -1029,32 +1029,49 @@
         function deleteTeacher(code) { if(confirm('Xóa giáo viên này?')) { db.staffs = db.staffs.filter(s => s.code !== code); saveDBCloud(); } }
 
         /* PHÒNG HỌC */
-        function openRoomModal(id = null) {
-            if (id) {
-                const r = db.rooms.find(x => x.id === id);
-                document.getElementById('rmCode').value = r.id;
-                document.getElementById('rmName').value = r.name;
-                document.getElementById('rmCap').value = r.capacity;
-            } else {
-                document.getElementById('rmCode').value = 'PH' + String(db.rooms.length + 1).padStart(3, '0');
-                document.getElementById('rmName').value = '';
-                document.getElementById('rmCap').value = '';
-            }
-            openModal('roomModal');
-        }
-
-        function saveRoom() {
-            const id = document.getElementById('rmCode').value;
-            const name = document.getElementById('rmName').value.trim();
-            const cap = document.getElementById('rmCap').value;
-            if (!name || !cap) return alert('Nhập đủ thông tin phòng!');
-            const idx = db.rooms.findIndex(r => r.id === id);
-            if (idx >= 0) db.rooms[idx] = { id, name, capacity: cap };
-            else db.rooms.push({ id, name, capacity: cap });
-            saveDBCloud();
-            closeModal('roomModal');
-        }
-
+     function openRoomModal(id = null) {
+    if (id) {
+        const r = db.rooms.find(x => x.id === id);
+        document.getElementById('rmCode').value = r.id;
+        document.getElementById('rmName').value = r.name;
+        document.getElementById('rmCap').value = r.capacity;
+    } else {
+        // Tìm số thứ tự lớn nhất từ các mã phòng hiện có (ví dụ: PH005 -> lấy số 5)
+        let maxNum = 0;
+        db.rooms.forEach(room => {
+            let num = parseInt(room.id.replace('PH', '')) || 0;
+            if (num > maxNum) maxNum = num;
+        });
+        
+        // Sinh mã phòng tiếp theo (ví dụ: 5 + 1 = 6 -> PH006)
+        let nextCode = 'PH' + String(maxNum + 1).padStart(3, '0');
+        
+        document.getElementById('rmCode').value = nextCode;
+        document.getElementById('rmName').value = '';
+        document.getElementById('rmCap').value = '';
+    }
+    openModal('roomModal');
+}
+       function saveRoom() {
+    const id = document.getElementById('rmCode').value;
+    const name = document.getElementById('rmName').value.trim();
+    const cap = parseInt(document.getElementById('rmCap').value);
+    
+    if (!name || !cap) {
+        alert('Vui lòng nhập đầy đủ tên phòng và sức chứa!');
+        return;
+    }
+    
+    const idx = db.rooms.findIndex(r => r.id === id);
+    if (idx >= 0) {
+        db.rooms[idx] = { id, name, capacity: cap };
+    } else {
+        db.rooms.push({ id, name, capacity: cap });
+    }
+    
+    saveDBCloud();
+    closeModal('roomModal');
+}
         function renderRoomTable() {
             document.getElementById('roomBody').innerHTML = db.rooms.map((r, i) => `
                 <tr class="hover:bg-green-50/50">
