@@ -513,15 +513,31 @@ async function downloadPDFReport() {
     const endDate = document.getElementById('pdfEndDate').value;
 
     try {
+        // Tăng độ phân giải canvas để chữ sắc nét
         const canvas = await html2canvas(reportElement, { scale: 2, useCORS: true });
         const imgData = canvas.toDataURL('image/png');
 
         const { jsPDF } = window.jspdf;
         const pdf = new jsPDF('p', 'mm', 'a4');
-        const pdfWidth = pdf.internal.pageSize.getWidth();
-        const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+        
+        const imgWidth = 210; // Chiều rộng chuẩn A4 (mm)
+        const pageHeight = 297; // Chiều cao chuẩn A4 (mm)
+        const imgHeight = (canvas.height * imgWidth) / canvas.width;
+        
+        let heightLeft = imgHeight;
+        let position = 0;
 
-        pdf.addImage(imgData, 'PNG', 0, 10, pdfWidth, pdfHeight);
+        // Vòng lặp tự động ngắt trang nếu nội dung dài hơn 1 trang A4
+        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+        heightLeft -= pageHeight;
+
+        while (heightLeft >= 0) {
+            position = heightLeft - imgHeight; // Tính toán vị trí cho trang tiếp theo
+            pdf.addPage();
+            pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+            heightLeft -= pageHeight;
+        }
+
         pdf.save(`Bao_Cao_Lich_Day_${teacher ? teacher.fullName.replace(/\s+/g, '_') : 'GiaoVien'}_${startDate}_to_${endDate}.pdf`);
         
         closeModal('pdfModal');
@@ -598,7 +614,7 @@ async function downloadPDFReport() {
                         <div class="h-20"></div>
                     </div>
                     <div>
-                        <p class="font-bold text-gray-600">GIÁO VIÊN XÁC NHẬN</p>
+                        <p class="font-bold text-gray-600">GIÁO VIÊN BÁO CÁO</p>
                         <p class="text-[10px] italic text-gray-400">(Ký, ghi rõ họ tên)</p>
                         <div class="h-20"></div>
                         <p id="pdfSignTeacherName" class="font-black text-gray-800 uppercase"></p>
