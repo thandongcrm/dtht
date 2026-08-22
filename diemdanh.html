@@ -10,7 +10,9 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <!-- Confetti -->
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
-
+<!-- Thêm 2 thư viện này để xử lý PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <!-- FIREBASE SDK COMPAT -->
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
@@ -25,9 +27,6 @@
         
         .btn-orange { background: #FF7A00; color: white; }
         .btn-orange:hover { background: #E06C00; }
-
-        .btn-green { background: #22C55E; color: white; }
-        .btn-green:hover { background: #16A34A; }
 
         .cute-bounce { animation: bounce 2s infinite; }
         @keyframes bounce {
@@ -63,6 +62,10 @@
             <i class="fa-solid fa-face-smile-wink text-amber-200"></i>
             <span class="tracking-wide">"Điểm danh chính xác - Ghi nhận trọn vẹn từng giọt mồ hôi đứng lớp của Thầy Cô!"</span>
         </div>
+        <!-- Dán vào cạnh nút Đăng xuất trong header -->
+<button onclick="openPdfModal()" class="px-3 py-1.5 bg-blue-100 text-blue-700 rounded-xl font-bold text-xs hover:bg-blue-200 transition">
+    <i class="fa-solid fa-file-pdf mr-1"></i> Xuất Báo Cáo PDF
+</button>
     </header>
 
     <!-- MAIN CONTENT -->
@@ -172,6 +175,9 @@
                     }
 
                     renderTKB();
+                    
+                    // 👉 THÊM DÒNG NÀY ĐỂ NẠP DANH SÁCH GIÁO VIÊN VÀO MODAL PDF
+                    initPdfTeacherSelect();
                 }
             }, (error) => {
                 console.error("Lỗi kết nối Firebase:", error);
@@ -386,6 +392,226 @@
             localStorage.removeItem('userEmail');
             window.location.href = 'index.html';
         }
+      function initPdfTeacherSelect() {
+    const select = document.getElementById('pdfTeacherSelect');
+    if (!select || !db.staffs) return;
+    
+    select.innerHTML = '';
+    db.staffs.forEach(t => {
+        // Tự động chọn giáo viên đang đăng nhập làm mặc định
+        let selected = (t.email === currentUserEmail) ? 'selected' : '';
+        select.innerHTML += `<option value="${t.email}" ${selected}>${t.gender || 'Cô/Thầy'} ${t.fullName} (${t.email})</option>`;
+    });
+
+    // Mặc định điền sẵn ngày đầu tháng và cuối tháng hiện tại cho tiện nhập liệu
+    const now = new Date();
+    const y = now.getFullYear();
+    const m = String(now.getMonth() + 1).padStart(2, '0');
+    const lastDay = new Date(y, now.getMonth() + 1, 0).getDate();
+    
+    const startInput = document.getElementById('pdfStartDate');
+    const endInput = document.getElementById('pdfEndDate');
+    
+    if (startInput && !startInput.value) startInput.value = `${y}-${m}-01`;
+    if (endInput && !endInput.value) endInput.value = `${y}-${m}-${lastDay}`;
+}
+// Hàm render dữ liệu lên khung xem trước
+function previewPDFReport() {
+    const teacherEmail = document.getElementById('pdfTeacherSelect').value;
+    const startDate = document.getElementById('pdfStartDate').value;
+    const endDate = document.getElementById('pdfEndDate').value;
+    const studentSource = document.getElementById('pdfStudentSource').value;
+
+    if(!startDate || !endDate) {
+        alert('Vui lòng chọn đầy đủ từ ngày và đến ngày!');
+        return;
+    }
+
+    const teacher = db.staffs.find(s => s.email === teacherEmail);
+    if(!teacher) return;
+
+    const checkedCols = Array.from(document.querySelectorAll('#pdfModal input[type="checkbox"]:checked')).map(cb => cb.value);
+
+    let filteredSchedules = db.schedules.filter(s => {
+        return s.teacherEmail === teacherEmail && s.date >= startDate && s.date <= endDate;
+    });
+
+    filteredSchedules.sort((a, b) => {
+        if (a.date !== b.date) return a.date.localeCompare(b.date);
+        return a.slotIndex - b.slotIndex;
+    });
+
+    document.getElementById('pdfReportTimeRange').innerText = `Từ ngày: ${startDate.split('-').reverse().join('/')} Đến ngày: ${endDate.split('-').reverse().join('/')}`;
+    
+    let genderTitle = teacher.gender || 'Cô/Thầy';
+    document.getElementById('pdfReportGreeting').innerText = `Kính gửi: ${genderTitle} ${teacher.fullName}`;
+    document.getElementById('pdfSignTeacherName').innerText = `${genderTitle} ${teacher.fullName}`;
+
+    let tableHTML = `
+        <thead class="bg-blue-600 text-white font-bold">
+            <tr>
+                ${checkedCols.includes('stt') ? '<th class="p-2 border border-blue-700 text-center w-12">STT</th>' : ''}
+                ${checkedCols.includes('date') ? '<th class="p-2 border border-blue-700">Ngày dạy</th>' : ''}
+                ${checkedCols.includes('slot') ? '<th class="p-2 border border-blue-700">Ca dạy (Giờ)</th>' : ''}
+                ${checkedCols.includes('room') ? '<th class="p-2 border border-blue-700">Phòng dạy</th>' : ''}
+                ${checkedCols.includes('class') ? '<th class="p-2 border border-blue-700">Lớp dạy</th>' : ''}
+                ${checkedCols.includes('students') ? '<th class="p-2 border border-blue-700 text-center">Số HS</th>' : ''}
+                ${checkedCols.includes('note') ? '<th class="p-2 border border-blue-700">Ghi chú</th>' : ''}
+            </tr>
+        </thead>
+        <tbody>
+    `;
+
+    if (filteredSchedules.length === 0) {
+        let colSpanCount = checkedCols.length;
+        tableHTML += `<tr><td colspan="${colSpanCount}" class="p-4 text-center font-bold text-gray-400 border">Không có ca dạy nào trong khoảng thời gian này.</td></tr>`;
+    } else {
+        filteredSchedules.forEach((s, idx) => {
+            let roomObj = db.rooms.find(r => r.id === s.roomId);
+            let roomName = roomObj ? roomObj.name : s.roomId;
+            let slotTimeStr = SLOTS[s.slotIndex] || 'Ca học';
+            let formattedDate = s.date.split('-').reverse().join('/');
+            
+            let studentCountVal = 0;
+            if (studentSource === 'attended') {
+                studentCountVal = s.attended ? (s.studentCount || 0) : 'Chưa ĐĐ';
+            } else {
+                studentCountVal = s.studentCount || '-';
+            }
+
+            tableHTML += `
+                <tr class="${idx % 2 === 0 ? 'bg-white' : 'bg-blue-50/30'}">
+                    ${checkedCols.includes('stt') ? `<td class="p-2 border border-gray-200 text-center font-bold">${idx + 1}</td>` : ''}
+                    ${checkedCols.includes('date') ? `<td class="p-2 border border-gray-200 font-semibold">${formattedDate}</td>` : ''}
+                    ${checkedCols.includes('slot') ? `<td class="p-2 border border-gray-200 font-semibold">${slotTimeStr}</td>` : ''}
+                    ${checkedCols.includes('room') ? `<td class="p-2 border border-gray-200 font-semibold">${roomName}</td>` : ''}
+                    ${checkedCols.includes('class') ? `<td class="p-2 border border-gray-200 font-bold text-blue-700">${s.className}</td>` : ''}
+                    ${checkedCols.includes('students') ? `<td class="p-2 border border-gray-200 text-center font-black text-green-700">${studentCountVal}</td>` : ''}
+                    ${checkedCols.includes('note') ? `<td class="p-2 border border-gray-200 italic text-gray-500">${s.note || ''}</td>` : ''}
+                </tr>
+            `;
+        });
+    }
+
+    tableHTML += `</tbody>`;
+    document.getElementById('pdfReportTable').innerHTML = tableHTML;
+}
+
+// Khi bấm nút Xuất Báo Cáo trên Header, tự động mở modal và load bản xem trước
+function openPdfModal() {
+    initPdfTeacherSelect();
+    previewPDFReport();
+    openModal('pdfModal');
+}
+
+// Hàm tải PDF sau khi đã xem kỹ bản xem trước
+async function downloadPDFReport() {
+    const reportElement = document.getElementById('pdfReportTemplate');
+    const teacherEmail = document.getElementById('pdfTeacherSelect').value;
+    const teacher = db.staffs.find(s => s.email === teacherEmail);
+    const startDate = document.getElementById('pdfStartDate').value;
+    const endDate = document.getElementById('pdfEndDate').value;
+
+    try {
+        const canvas = await html2canvas(reportElement, { scale: 2, useCORS: true });
+        const imgData = canvas.toDataURL('image/png');
+
+        const { jsPDF } = window.jspdf;
+        const pdf = new jsPDF('p', 'mm', 'a4');
+        const pdfWidth = pdf.internal.pageSize.getWidth();
+        const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+
+        pdf.addImage(imgData, 'PNG', 0, 10, pdfWidth, pdfHeight);
+        pdf.save(`Bao_Cao_Lich_Day_${teacher ? teacher.fullName.replace(/\s+/g, '_') : 'GiaoVien'}_${startDate}_to_${endDate}.pdf`);
+        
+        closeModal('pdfModal');
+    } catch (err) {
+        console.error("Lỗi tạo PDF:", err);
+        alert("Có lỗi xảy ra khi tạo file PDF: " + err.message);
+    }
+}
     </script>
+    <!-- ================= MODAL CẤU HÌNH & XEM TRƯỚC BÁO CÁO PDF ================= -->
+<div id="pdfModal" class="fixed inset-0 bg-black/50 hidden items-center justify-center p-4 z-50">
+    <div class="bg-white w-full max-w-4xl rounded-3xl p-6 shadow-2xl border-4 border-blue-300 max-h-[90vh] overflow-y-auto">
+        <h3 class="text-lg font-black text-blue-600 mb-1"><i class="fa-solid fa-file-pdf mr-2"></i>Xem Trước & Xuất Báo Cáo Lịch Dạy</h3>
+        <p class="text-xs text-gray-500 mb-4 font-semibold">Tùy chọn nội dung, xem trước giao diện chuẩn A4 trước khi tải về.</p>
+        
+        <!-- Phần tùy chọn lọc -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-3 text-xs bg-blue-50/50 p-4 rounded-2xl border border-blue-100 mb-4">
+            <div>
+                <label class="font-bold text-gray-700 block mb-1">Giáo Viên:</label>
+                <select id="pdfTeacherSelect" class="w-full p-2 border-2 border-blue-200 rounded-xl font-bold text-gray-700 bg-white"></select>
+            </div>
+            <div>
+                <label class="font-bold text-gray-700 block mb-1">Từ Ngày:</label>
+                <input type="date" id="pdfStartDate" class="w-full p-2 border-2 border-blue-200 rounded-xl font-bold text-gray-700 bg-white">
+            </div>
+            <div>
+                <label class="font-bold text-gray-700 block mb-1">Đến Ngày:</label>
+                <input type="date" id="pdfEndDate" class="w-full p-2 border-2 border-blue-200 rounded-xl font-bold text-gray-700 bg-white">
+            </div>
+            <div>
+                <label class="font-bold text-gray-700 block mb-1">Nguồn Số Lượng HS:</label>
+                <select id="pdfStudentSource" class="w-full p-2 border-2 border-blue-200 rounded-xl font-bold text-gray-700 bg-white">
+                    <option value="attended">Thực tế điểm danh</option>
+                    <option value="admin">Khai báo / Tên lớp Admin</option>
+                </select>
+            </div>
+            <div class="md:col-span-4 flex flex-wrap gap-4 items-center pt-2 border-t border-blue-200 font-semibold">
+                <span class="font-bold text-gray-700">Các cột hiển thị:</span>
+                <label class="flex items-center space-x-1 cursor-pointer"><input type="checkbox" value="stt" checked class="accent-blue-600 w-4 h-4"> <span>STT</span></label>
+                <label class="flex items-center space-x-1 cursor-pointer"><input type="checkbox" value="date" checked class="accent-blue-600 w-4 h-4"> <span>Ngày dạy</span></label>
+                <label class="flex items-center space-x-1 cursor-pointer"><input type="checkbox" value="slot" checked class="accent-blue-600 w-4 h-4"> <span>Ca & Giờ</span></label>
+                <label class="flex items-center space-x-1 cursor-pointer"><input type="checkbox" value="room" checked class="accent-blue-600 w-4 h-4"> <span>Phòng</span></label>
+                <label class="flex items-center space-x-1 cursor-pointer"><input type="checkbox" value="class" checked class="accent-blue-600 w-4 h-4"> <span>Lớp</span></label>
+                <label class="flex items-center space-x-1 cursor-pointer"><input type="checkbox" value="students" checked class="accent-blue-600 w-4 h-4"> <span>Số HS</span></label>
+                <label class="flex items-center space-x-1 cursor-pointer"><input type="checkbox" value="note" checked class="accent-blue-600 w-4 h-4"> <span>Ghi chú</span></label>
+                <button onclick="previewPDFReport()" class="ml-auto px-4 py-2 bg-blue-600 text-white rounded-xl font-bold shadow hover:bg-blue-700"><i class="fa-solid fa-eye mr-1"></i> Cập Nhật Xem Trước</button>
+            </div>
+        </div>
+
+        <!-- Khung Xem Trước Báo Cáo (Giao diện A4 thu nhỏ chuyên nghiệp) -->
+        <div class="border-2 border-gray-300 rounded-2xl bg-gray-50 p-4 overflow-x-auto flex justify-center">
+            <div id="pdfReportTemplate" style="width: 794px; background: #ffffff; color: #1f2937; padding: 40px; box-sizing: border-box; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);">
+                <div class="text-center mb-6">
+                    <h5 class="text-[11px] font-bold text-gray-500 uppercase tracking-widest">HỆ THỐNG GIÁO DỤC THẦN ĐỒNG SIÊU NHÍ - M'ĐRẮK</h5>
+                    <h2 class="text-lg font-black text-orange-600 uppercase mt-1">BẢNG KÊ CHI TIẾT CA DẠY VÀ ĐIỂM DANH</h2>
+                    <p id="pdfReportTimeRange" class="text-xs font-bold text-gray-600 mt-1"></p>
+                </div>
+
+                <div class="mb-4 text-xs font-bold text-gray-800">
+                    <p id="pdfReportGreeting" class="text-sm font-black text-blue-700 mb-1"></p>
+                    <p class="text-gray-600 font-semibold">Hệ thống xin gửi bảng kê chi tiết các ca đứng lớp trong khoảng thời gian đã chọn như sau:</p>
+                </div>
+
+                <!-- Bảng chi tiết -->
+                <div class="overflow-x-auto mb-6">
+                    <table id="pdfReportTable" class="w-full text-left text-xs border-collapse border border-gray-300"></table>
+                </div>
+
+                <!-- Phần Ký Tên -->
+                <div class="grid grid-cols-2 text-center text-xs mt-8 pt-4">
+                    <div>
+                        <p class="font-bold text-gray-600">XÁC NHẬN CỦA TRUNG TÂM</p>
+                        <p class="text-[10px] italic text-gray-400">(Ký, ghi rõ họ tên)</p>
+                        <div class="h-20"></div>
+                    </div>
+                    <div>
+                        <p class="font-bold text-gray-600">GIÁO VIÊN BÁO CÁO</p>
+                        <p class="text-[10px] italic text-gray-400">(Ký, ghi rõ họ tên)</p>
+                        <div class="h-20"></div>
+                        <p id="pdfSignTeacherName" class="font-black text-gray-800 uppercase"></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="flex justify-between items-center mt-5 text-xs">
+            <button onclick="closeModal('pdfModal')" class="px-4 py-2 bg-gray-200 rounded-xl font-bold">Đóng / Hủy</button>
+            <button onclick="downloadPDFReport()" class="px-6 py-2.5 bg-green-600 text-white rounded-xl font-bold shadow hover:bg-green-700 text-sm"><i class="fa-solid fa-download mr-1"></i> Xác Nhận Tải File PDF</button>
+        </div>
+    </div>
+</div>
 </body>
 </html>
